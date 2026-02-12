@@ -1,0 +1,37 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+    .aya-pill,
+    .aya-pill * {
+        color: #fff !important;
+        background-color: transparent !important;
+    }
+
+    .aya-prompt-textarea {
+        background-color: transparent !important;
+        outline: none !important;
+        box-shadow: none !important;
+        border-width: 1px !important;
+        min-height: 9rem !important;
+    }
+}
+
+@layer components {
+    .tabbar {
+        @apply flex flex-wrap flex-none p-3 bg-black/25 rounded-b;
+    }
+
+    .tabsection {
+        @apply flex flex-wrap flex-row flex-auto;
+    }
+
+    .tabsection:nth-of-type(2) {
+        @apply justify-end;
+    }
+
+    .tabsection * {
+        @apply mx-1;
+    }
+}
