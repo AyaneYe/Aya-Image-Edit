@@ -14,7 +14,9 @@
     "network": {
       "domains": [
         "https://dashscope.aliyuncs.com",
-        "https://*.aliyuncs.com"
+        "https://*.aliyuncs.com",
+        "https://generativelanguage.googleapis.com",
+        "https://*.googleapis.com"
       ]
     },
     "launchProcess": {
@@ -33,7 +35,9 @@
         "https://*.adobe.com",
         "https://*.google.com",
         "https://dashscope.aliyuncs.com",
-        "https://*.aliyuncs.com"
+        "https://*.aliyuncs.com",
+        "https://generativelanguage.googleapis.com",
+        "https://*.googleapis.com"
       ]
     }
   },

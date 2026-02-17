@@ -1,8 +1,13 @@
 const SETTINGS_FILE_NAME = "settings.json";
 
 export const defaultSettings = {
+  provider: "dashscope",
   apiKey: "",
   model: "qwen-image-edit-max",
+  geminiApiKey: "",
+  geminiModel: "gemini-2.5-flash-image",
+  geminiAspectRatio: "",
+  geminiImageSize: "",
   // n is kept for backward compatibility with existing settings.json
   n: 1,
   negative_prompt: "",

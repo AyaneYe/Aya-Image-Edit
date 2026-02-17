@@ -1,4 +1,49 @@
+function decodeBase64ToBytes(base64) {
+  const clean = String(base64 || "").replace(/\s+/g, "");
+
+  if (typeof atob === "function") {
+    const binary = atob(clean);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return bytes;
+  }
+
+  if (typeof Buffer !== "undefined") {
+    const buf = Buffer.from(clean, "base64");
+    return new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
+  }
+
+  throw new Error("当前环境不支持 base64 解码");
+}
+
+function tryDataUrlToArrayBuffer(url) {
+  if (typeof url !== "string" || !url.startsWith("data:")) return null;
+
+  const commaIndex = url.indexOf(",");
+  if (commaIndex < 0) throw new Error("data URL 无效");
+
+  const meta = url.slice(5, commaIndex);
+  const payload = url.slice(commaIndex + 1);
+
+  if (/;base64/i.test(meta)) {
+    const bytes = decodeBase64ToBytes(payload);
+    return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+  }
+
+  const text = decodeURIComponent(payload);
+  const bytes = new Uint8Array(text.length);
+  for (let i = 0; i < text.length; i++) {
+    bytes[i] = text.charCodeAt(i) & 0xff;
+  }
+  return bytes.buffer;
+}
+
 async function fetchArrayBuffer(url) {
+  const dataBuffer = tryDataUrlToArrayBuffer(url);
+  if (dataBuffer) return dataBuffer;
+
   const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
   const timeout = setTimeout(() => controller?.abort(), 30000);
   const res = await fetch(url, {

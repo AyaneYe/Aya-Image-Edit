@@ -1,6 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
-import { dashscopeGenerate, parseDashscopeImages } from "./dashscope";
+import {
+  generateImageByProvider,
+  getProviderApiKey,
+  getProviderLabel,
+  normalizeProvider,
+  PROVIDER_DASHSCOPE,
+  PROVIDER_GEMINI,
+} from "./aiProvider";
 import { placeImageUrlAtBounds } from "./placeImage";
 import { getSelectionBounds, selectionToImageBase64 } from "./psSelection";
 import {
@@ -65,6 +72,9 @@ const MainPanelInner = () => {
   const previewCurrent = previewImageList.length
     ? previewImageList[Math.min(previewIndex, previewImageList.length - 1)]
     : null;
+  const activeProvider = normalizeProvider(settings.provider);
+  const isGeminiProvider = activeProvider === PROVIDER_GEMINI;
+  const isDashscopeProvider = activeProvider === PROVIDER_DASHSCOPE;
 
   const safeRevokeObjectUrl = (maybeUrl) => {
     if (
@@ -80,7 +90,52 @@ const MainPanelInner = () => {
     }
   };
 
+  const decodeBase64ToBytes = (base64) => {
+    const clean = String(base64 || "").replace(/\s+/g, "");
+
+    if (typeof atob === "function") {
+      const binary = atob(clean);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+      return bytes;
+    }
+
+    if (typeof Buffer !== "undefined") {
+      const buf = Buffer.from(clean, "base64");
+      return new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
+    }
+
+    throw new Error("当前环境不支持 base64 解码");
+  };
+
+  const tryDataUrlToArrayBuffer = (url) => {
+    if (typeof url !== "string" || !url.startsWith("data:")) return null;
+
+    const commaIndex = url.indexOf(",");
+    if (commaIndex < 0) throw new Error("data URL 无效");
+
+    const meta = url.slice(5, commaIndex);
+    const payload = url.slice(commaIndex + 1);
+
+    if (/;base64/i.test(meta)) {
+      const bytes = decodeBase64ToBytes(payload);
+      return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+    }
+
+    const text = decodeURIComponent(payload);
+    const bytes = new Uint8Array(text.length);
+    for (let i = 0; i < text.length; i++) {
+      bytes[i] = text.charCodeAt(i) & 0xff;
+    }
+    return bytes.buffer;
+  };
+
   const fetchArrayBuffer = async (url) => {
+    const dataBuffer = tryDataUrlToArrayBuffer(url);
+    if (dataBuffer) return dataBuffer;
+
     const controller =
       typeof AbortController !== "undefined" ? new AbortController() : null;
     const timeout = setTimeout(() => controller?.abort(), 30000);
@@ -91,6 +146,17 @@ const MainPanelInner = () => {
     return await res.arrayBuffer();
   };
 
+  const inferImageMimeType = (url) => {
+    if (typeof url === "string" && url.startsWith("data:")) {
+      const commaIndex = url.indexOf(",");
+      const meta = commaIndex > 5 ? url.slice(5, commaIndex) : "";
+      const semiIndex = meta.indexOf(";");
+      const mime = semiIndex >= 0 ? meta.slice(0, semiIndex) : meta;
+      if (mime) return mime;
+    }
+    return "image/png";
+  };
+
   const tryCreatePreviewObjectUrl = async (url) => {
     try {
       if (
@@ -99,7 +165,7 @@ const MainPanelInner = () => {
       )
         return null;
       const buf = await fetchArrayBuffer(url);
-      const blob = new Blob([buf], { type: "image/png" });
+      const blob = new Blob([buf], { type: inferImageMimeType(url) });
       return URL.createObjectURL(blob);
     } catch {
       return null;
@@ -180,9 +246,10 @@ const MainPanelInner = () => {
     setError("");
     setStatus("");
 
-    if (!settings.apiKey) {
+    const providerApiKey = getProviderApiKey(settings, activeProvider);
+    if (!providerApiKey) {
       setActiveTab("settings");
-      setError("请先在设置中填写 DASHSCOPE API Key");
+      setError(`请先在设置中填写 ${getProviderLabel(activeProvider)} API Key`);
       return;
     }
     if (!prompt.trim()) {
@@ -208,27 +275,27 @@ const MainPanelInner = () => {
       const cleanedSize =
         typeof settings.size === "string" ? settings.size.trim() : "";
 
-      const parameters = {
-        n: 1,
-        // Some backends reject empty string; keep empty in UI but send a safe fallback.
-        negative_prompt: cleanedNegative.length ? cleanedNegative : " ",
-        prompt_extend: Boolean(settings.prompt_extend),
-        watermark: Boolean(settings.watermark),
-        ...(cleanedSize.length ? { size: cleanedSize } : null),
-      };
+      const dashscopeParameters = isDashscopeProvider
+        ? {
+            n: 1,
+            // Some backends reject empty string; keep empty in UI but send a safe fallback.
+            negative_prompt: cleanedNegative.length ? cleanedNegative : " ",
+            prompt_extend: Boolean(settings.prompt_extend),
+            watermark: Boolean(settings.watermark),
+            ...(cleanedSize.length ? { size: cleanedSize } : null),
+          }
+        : null;
 
-      setStatus("请求生成中...");
-      const json = await dashscopeGenerate({
-        apiKey: settings.apiKey,
-        model: settings.model,
+      setStatus(`请求 ${getProviderLabel(activeProvider)} 生成中...`);
+      const { urls } = await generateImageByProvider({
+        settings,
         prompt,
         inputImageBase64: base64,
         inputImageMime: mime,
-        parameters,
+        dashscopeParameters,
       });
 
-      const urls = parseDashscopeImages(json);
-      if (!urls.length) throw new Error("响应中没有找到 image URL");
+      if (!urls.length) throw new Error("响应中没有找到可用图片");
 
       setStatus("已生成，准备预览...");
       const url = urls[0];
@@ -366,7 +433,7 @@ const MainPanelInner = () => {
               <div className="text-[10px] opacity-70 text-white">
                 {showingPreview
                   ? `共 ${previewImageList.length} 张`
-                  : "选区 → 生成 → 预览/贴回"}
+                  : `${getProviderLabel(activeProvider)} · 选区 → 生成 → 预览/贴回`}
               </div>
             </div>
 
@@ -466,7 +533,10 @@ const MainPanelInner = () => {
 
                 {previewCurrent ? (
                   <div className="text-[10px] opacity-70 break-words">
-                    {previewCurrent.url}
+                    {typeof previewCurrent.url === "string" &&
+                    previewCurrent.url.startsWith("data:")
+                      ? `${previewCurrent.url.slice(0, 80)}...`
+                      : previewCurrent.url}
                   </div>
                 ) : null}
               </div>
@@ -483,67 +553,127 @@ const MainPanelInner = () => {
 
                 <div className="h-2" />
 
-                <div className="grid grid-cols-2 gap-2">
-                  <label className="flex flex-col gap-1">
-                    <span className="text-xs opacity-80">
-                      size (可选，如 1536*1024)
-                    </span>
-                    <input
-                      className={fieldBase}
-                      type="text"
-                      value={settings.size}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        setSettings((s) => ({ ...s, size: value }));
-                      }}
-                      disabled={isBusy}
-                    />
-                  </label>
-                  <label className="flex flex-col gap-1">
-                    <span className="text-xs opacity-80">
-                      负面提示词
-                    </span>
-                    <input
-                      className={fieldBase}
-                      type="text"
-                      value={settings.negative_prompt}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        setSettings((s) => ({ ...s, negative_prompt: value }));
-                      }}
-                      disabled={isBusy}
-                    />
-                  </label>
-                </div>
+                {isDashscopeProvider ? (
+                  <>
+                    <div className="grid grid-cols-2 gap-2">
+                      <label className="flex flex-col gap-1">
+                        <span className="text-xs opacity-80">
+                          size (可选，如 1536*1024)
+                        </span>
+                        <input
+                          className={fieldBase}
+                          type="text"
+                          value={settings.size}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setSettings((s) => ({ ...s, size: value }));
+                          }}
+                          disabled={isBusy}
+                        />
+                      </label>
+                      <label className="flex flex-col gap-1">
+                        <span className="text-xs opacity-80">
+                          负面提示词
+                        </span>
+                        <input
+                          className={fieldBase}
+                          type="text"
+                          value={settings.negative_prompt}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setSettings((s) => ({ ...s, negative_prompt: value }));
+                          }}
+                          disabled={isBusy}
+                        />
+                      </label>
+                    </div>
 
-                <div className="h-2" />
+                    <div className="h-2" />
 
-                <div className="flex items-center gap-4 flex-wrap">
-                  <label className="flex items-center gap-2 text-xs rounded-md border px-2 py-1 aya-pill">
-                    <input
-                      type="checkbox"
-                      checked={Boolean(settings.prompt_extend)}
-                      onChange={(e) => {
-                        const checked = e.target.checked;
-                        setSettings((s) => ({ ...s, prompt_extend: checked }));
-                      }}
-                      disabled={isBusy}
-                    />
-                    <span>提示词优化</span>
-                  </label>
-                  <label className="flex items-center gap-2 text-xs rounded-md border px-2 py-1 aya-pill">
-                    <input
-                      type="checkbox"
-                      checked={Boolean(settings.watermark)}
-                      onChange={(e) => {
-                        const checked = e.target.checked;
-                        setSettings((s) => ({ ...s, watermark: checked }));
-                      }}
-                      disabled={isBusy}
-                    />
-                    <span>水印</span>
-                  </label>
-                </div>
+                    <div className="flex items-center gap-4 flex-wrap">
+                      <label className="flex items-center gap-2 text-xs rounded-md border px-2 py-1 aya-pill">
+                        <input
+                          type="checkbox"
+                          checked={Boolean(settings.prompt_extend)}
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            setSettings((s) => ({ ...s, prompt_extend: checked }));
+                          }}
+                          disabled={isBusy}
+                        />
+                        <span>提示词优化</span>
+                      </label>
+                      <label className="flex items-center gap-2 text-xs rounded-md border px-2 py-1 aya-pill">
+                        <input
+                          type="checkbox"
+                          checked={Boolean(settings.watermark)}
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            setSettings((s) => ({ ...s, watermark: checked }));
+                          }}
+                          disabled={isBusy}
+                        />
+                        <span>水印</span>
+                      </label>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-2 gap-2">
+                      <label className="flex flex-col gap-1">
+                        <span className="text-xs opacity-80">
+                          画幅比例 (可选)
+                        </span>
+                        <select
+                          className={fieldBase}
+                          value={settings.geminiAspectRatio || ""}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setSettings((s) => ({ ...s, geminiAspectRatio: value }));
+                          }}
+                          disabled={isBusy}
+                        >
+                          <option value="">默认</option>
+                          <option value="1:1">1:1</option>
+                          <option value="2:3">2:3</option>
+                          <option value="3:2">3:2</option>
+                          <option value="3:4">3:4</option>
+                          <option value="4:3">4:3</option>
+                          <option value="4:5">4:5</option>
+                          <option value="5:4">5:4</option>
+                          <option value="9:16">9:16</option>
+                          <option value="16:9">16:9</option>
+                          <option value="21:9">21:9</option>
+                        </select>
+                      </label>
+                      <label className="flex flex-col gap-1">
+                        <span className="text-xs opacity-80">
+                          分辨率 (可选)
+                        </span>
+                        <select
+                          className={fieldBase}
+                          value={settings.geminiImageSize || ""}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setSettings((s) => ({ ...s, geminiImageSize: value }));
+                          }}
+                          disabled={isBusy}
+                        >
+                          <option value="">默认 (1K)</option>
+                          <option value="1K">1K</option>
+                          <option value="2K">2K</option>
+                          <option value="4K">4K</option>
+                        </select>
+                      </label>
+                    </div>
+
+                    <div className="h-2" />
+
+                    <div className="text-[10px] opacity-70">
+                      Gemini 图片会自带 SynthID 水印。
+                    </div>
+                  </>
+                )}
 
                 <div className="h-2" />
 
@@ -604,13 +734,34 @@ const MainPanelInner = () => {
           <div className="h-2" />
 
           <label className="flex flex-col gap-1">
-            <span className="text-xs opacity-80">API Key</span>
+            <span className="text-xs opacity-80">Provider</span>
+            <select
+              className={fieldBase}
+              value={activeProvider}
+              onChange={(e) => {
+                const value = e.target.value;
+                setSettings((s) => ({ ...s, provider: normalizeProvider(value) }));
+              }}
+            >
+              <option value={PROVIDER_DASHSCOPE}>DashScope</option>
+              <option value={PROVIDER_GEMINI}>Gemini Banana</option>
+            </select>
+          </label>
+
+          <label className="flex flex-col gap-1">
+            <span className="text-xs opacity-80">
+              {isGeminiProvider ? "Gemini API Key" : "DashScope API Key"}
+            </span>
             <input
               className={fieldBase}
               type="password"
-              value={settings.apiKey}
+              value={isGeminiProvider ? settings.geminiApiKey : settings.apiKey}
               onChange={(e) => {
                 const value = e.target.value;
+                if (isGeminiProvider) {
+                  setSettings((s) => ({ ...s, geminiApiKey: value }));
+                  return;
+                }
                 setSettings((s) => ({ ...s, apiKey: value }));
               }}
             />
@@ -621,13 +772,23 @@ const MainPanelInner = () => {
             <input
               className={fieldBase}
               type="text"
-              value={settings.model}
+              value={isGeminiProvider ? settings.geminiModel : settings.model}
               onChange={(e) => {
                 const value = e.target.value;
+                if (isGeminiProvider) {
+                  setSettings((s) => ({ ...s, geminiModel: value }));
+                  return;
+                }
                 setSettings((s) => ({ ...s, model: value }));
               }}
             />
           </label>
+
+          {isGeminiProvider ? (
+            <div className="text-[10px] opacity-70">
+              可用示例：gemini-2.5-flash-image、gemini-3-pro-image-preview。
+            </div>
+          ) : null}
 
           <div className="text-[10px] opacity-70">
             设置会自动保存（插件数据目录）。
