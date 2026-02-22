@@ -25,6 +25,11 @@ import {
   textareaBase,
 } from "./styles";
 
+const GEMINI_MODEL_PRESETS = [
+  "gemini-2.5-flash-image",
+  "gemini-3-pro-image-preview",
+];
+
 class PanelErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
@@ -769,24 +774,40 @@ const MainPanelInner = () => {
 
           <label className="flex flex-col gap-1">
             <span className="text-xs opacity-80">模型名</span>
-            <input
-              className={fieldBase}
-              type="text"
-              value={isGeminiProvider ? settings.geminiModel : settings.model}
-              onChange={(e) => {
-                const value = e.target.value;
-                if (isGeminiProvider) {
-                  setSettings((s) => ({ ...s, geminiModel: value }));
-                  return;
-                }
-                setSettings((s) => ({ ...s, model: value }));
-              }}
-            />
+            {isGeminiProvider ? (
+              <>
+                <input
+                  className={fieldBase}
+                  type="text"
+                  list="aya-gemini-model-presets"
+                  value={settings.geminiModel}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setSettings((s) => ({ ...s, geminiModel: value }));
+                  }}
+                />
+                <datalist id="aya-gemini-model-presets">
+                  {GEMINI_MODEL_PRESETS.map((modelId) => (
+                    <option key={modelId} value={modelId} />
+                  ))}
+                </datalist>
+              </>
+            ) : (
+              <input
+                className={fieldBase}
+                type="text"
+                value={settings.model}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setSettings((s) => ({ ...s, model: value }));
+                }}
+              />
+            )}
           </label>
 
           {isGeminiProvider ? (
             <div className="text-[10px] opacity-70">
-              可用示例：gemini-2.5-flash-image、gemini-3-pro-image-preview。
+              可编辑下拉预设：{GEMINI_MODEL_PRESETS.join("、")}。
             </div>
           ) : null}
 
