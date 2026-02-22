@@ -36,6 +36,43 @@ function rgbaToRgbOverWhite(rgba) {
 }
 
 async function encodeImageDataBase64({ imaging, imageData, format }) {
+  const bytesToBase64 = (bytes) => {
+    const view = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+
+    if (typeof Buffer !== "undefined") {
+      return Buffer.from(view.buffer, view.byteOffset, view.byteLength).toString("base64");
+    }
+
+    let binary = "";
+    const chunk = 0x8000;
+    for (let i = 0; i < view.length; i += chunk) {
+      const slice = view.subarray(i, i + chunk);
+      binary += String.fromCharCode(...slice);
+    }
+    if (typeof btoa !== "function") {
+      throw new Error("当前环境不支持二进制到 base64 编码");
+    }
+    return btoa(binary);
+  };
+
+  const normalizeBase64 = (encoded) => {
+    if (typeof encoded === "string") {
+      return encoded.includes(",") ? encoded.split(",")[1] : encoded;
+    }
+
+    const payload = encoded?.data ?? encoded;
+    if (typeof payload === "string") {
+      return payload.includes(",") ? payload.split(",")[1] : payload;
+    }
+
+    if (payload instanceof ArrayBuffer) return bytesToBase64(new Uint8Array(payload));
+    if (ArrayBuffer.isView(payload)) {
+      return bytesToBase64(new Uint8Array(payload.buffer, payload.byteOffset, payload.byteLength));
+    }
+
+    throw new Error("encodeImageData returned unsupported payload type");
+  };
+
   const tryCalls = [
     async () => imaging.encodeImageData({ imageData, format, base64: true }),
     async () => imaging.encodeImageData(imageData, { format, base64: true }),
@@ -46,9 +83,11 @@ async function encodeImageDataBase64({ imaging, imageData, format }) {
   for (const fn of tryCalls) {
     try {
       const encoded = await fn();
-      const str = typeof encoded === "string" ? encoded : encoded?.data;
-      if (!str) throw new Error("encodeImageData returned empty result");
-      return str.includes(",") ? str.split(",")[1] : str;
+      const base64 = normalizeBase64(encoded);
+      if (!base64 || typeof base64 !== "string") {
+        throw new Error("encodeImageData returned empty result");
+      }
+      return base64.replace(/\s+/g, "");
     } catch (e) {
       lastError = e;
     }
