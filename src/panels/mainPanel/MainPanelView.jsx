@@ -17,6 +17,7 @@ import {
 } from "./settingsStorage";
 import {
   btnBase,
+  btnPrimary,
   card,
   cardTitle,
   fieldBase,
@@ -24,6 +25,11 @@ import {
   tabList,
   textareaBase,
 } from "./styles";
+
+const GEMINI_MODEL_OPTIONS = [
+  "gemini-2.5-flash-image",
+  "gemini-3-pro-image-preview",
+];
 
 class PanelErrorBoundary extends React.Component {
   constructor(props) {
@@ -46,9 +52,6 @@ class PanelErrorBoundary extends React.Component {
           <div className="text-sm">面板发生错误</div>
           <div className="text-xs text-red-600 break-words">
             {String(this.state.error?.message || this.state.error)}
-          </div>
-          <div className="text-[10px] opacity-70">
-            如果这是在你修改 UI 后出现的，通常是运行时异常导致 React 渲染中断。
           </div>
         </div>
       );
@@ -398,7 +401,7 @@ const MainPanelInner = () => {
   };
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-3 text-white">
       <div className={tabList} role="tablist" aria-label="Main tabs">
         {tabs.map((tab) => {
           const isActive = tab.id === activeTab;
@@ -412,7 +415,7 @@ const MainPanelInner = () => {
                 tabBase +
                 (isActive
                   ? " bg-black/20 border-black/30"
-                  : " bg-transparent border-transparent")
+                  : " bg-transparent border-transparent hover:bg-black/10")
               }
               onClick={() => setActiveTab(tab.id)}
               disabled={isBusy}
@@ -430,7 +433,7 @@ const MainPanelInner = () => {
               <div className={cardTitle}>
                 {showingPreview ? "预览" : "AI 图像编辑"}
               </div>
-              <div className="text-[10px] opacity-70 text-white">
+              <div className="text-[10px] opacity-70">
                 {showingPreview
                   ? `共 ${previewImageList.length} 张`
                   : `${getProviderLabel(activeProvider)} · 选区 → 生成 → 预览/贴回`}
@@ -488,7 +491,7 @@ const MainPanelInner = () => {
                 <div className="flex items-center gap-2 flex-wrap">
                   <button
                     type="button"
-                    className={btnBase}
+                    className={btnPrimary}
                     onClick={() => onSendToPS("original")}
                     disabled={isBusy || !previewCurrent}
                   >
@@ -542,6 +545,9 @@ const MainPanelInner = () => {
               </div>
             ) : (
               <>
+                <div className="text-[11px] opacity-75">
+                  先选中 PS 里的目标区域，再输入提示词生成结果。
+                </div>
                 <textarea
                   className={textareaBase + " aya-prompt-textarea"}
                   rows={6}
@@ -678,7 +684,7 @@ const MainPanelInner = () => {
                 <div className="h-2" />
 
                 <label className="flex flex-col gap-1">
-                  <span className="text-lg opacity-80 text-white">自动发送到PS</span>
+                  <span className="text-xs opacity-80">自动发送到 PS</span>
                   <select
                     className={fieldBase}
                     value={settings.autoSendMode || "off"}
@@ -698,7 +704,7 @@ const MainPanelInner = () => {
                 <div className="flex items-center gap-2 flex-wrap">
                   <button
                     type="button"
-                    className={btnBase}
+                    className={btnPrimary}
                     onClick={onGenerate}
                     disabled={isBusy}
                   >
@@ -733,65 +739,78 @@ const MainPanelInner = () => {
           <div className={cardTitle}>设置</div>
           <div className="h-2" />
 
-          <label className="flex flex-col gap-1">
-            <span className="text-xs opacity-80">Provider</span>
-            <select
-              className={fieldBase}
-              value={activeProvider}
-              onChange={(e) => {
-                const value = e.target.value;
-                setSettings((s) => ({ ...s, provider: normalizeProvider(value) }));
-              }}
-            >
-              <option value={PROVIDER_DASHSCOPE}>DashScope</option>
-              <option value={PROVIDER_GEMINI}>Gemini Banana</option>
-            </select>
-          </label>
+          <div className="flex flex-col gap-3">
+            <label className="flex flex-col gap-1">
+              <span className="text-xs opacity-80">Provider</span>
+              <select
+                className={fieldBase}
+                value={activeProvider}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setSettings((s) => ({ ...s, provider: normalizeProvider(value) }));
+                }}
+                disabled={isBusy}
+              >
+                <option value={PROVIDER_DASHSCOPE}>DashScope</option>
+                <option value={PROVIDER_GEMINI}>Gemini Banana</option>
+              </select>
+            </label>
 
-          <label className="flex flex-col gap-1">
-            <span className="text-xs opacity-80">
-              {isGeminiProvider ? "Gemini API Key" : "DashScope API Key"}
-            </span>
-            <input
-              className={fieldBase}
-              type="password"
-              value={isGeminiProvider ? settings.geminiApiKey : settings.apiKey}
-              onChange={(e) => {
-                const value = e.target.value;
-                if (isGeminiProvider) {
-                  setSettings((s) => ({ ...s, geminiApiKey: value }));
-                  return;
-                }
-                setSettings((s) => ({ ...s, apiKey: value }));
-              }}
-            />
-          </label>
+            <label className="flex flex-col gap-1">
+              <span className="text-xs opacity-80">
+                {isGeminiProvider ? "Gemini API Key" : "DashScope API Key"}
+              </span>
+              <input
+                className={fieldBase}
+                type="password"
+                value={isGeminiProvider ? settings.geminiApiKey : settings.apiKey}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (isGeminiProvider) {
+                    setSettings((s) => ({ ...s, geminiApiKey: value }));
+                    return;
+                  }
+                  setSettings((s) => ({ ...s, apiKey: value }));
+                }}
+                disabled={isBusy}
+              />
+            </label>
 
-          <label className="flex flex-col gap-1">
-            <span className="text-xs opacity-80">模型名</span>
-            <input
-              className={fieldBase}
-              type="text"
-              value={isGeminiProvider ? settings.geminiModel : settings.model}
-              onChange={(e) => {
-                const value = e.target.value;
-                if (isGeminiProvider) {
-                  setSettings((s) => ({ ...s, geminiModel: value }));
-                  return;
-                }
-                setSettings((s) => ({ ...s, model: value }));
-              }}
-            />
-          </label>
+            <label className="flex flex-col gap-1">
+              <span className="text-xs opacity-80">模型</span>
+              {isGeminiProvider ? (
+                <select
+                  className={fieldBase}
+                  value={settings.geminiModel}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setSettings((s) => ({ ...s, geminiModel: value }));
+                  }}
+                  disabled={isBusy}
+                >
+                  {GEMINI_MODEL_OPTIONS.map((modelName) => (
+                    <option key={modelName} value={modelName}>
+                      {modelName}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  className={fieldBase}
+                  type="text"
+                  value={settings.model}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setSettings((s) => ({ ...s, model: value }));
+                  }}
+                  disabled={isBusy}
+                />
+              )}
+            </label>
+          </div>
 
-          {isGeminiProvider ? (
-            <div className="text-[10px] opacity-70">
-              可用示例：gemini-2.5-flash-image、gemini-3-pro-image-preview。
-            </div>
-          ) : null}
-
-          <div className="text-[10px] opacity-70">
-            设置会自动保存（插件数据目录）。
+          <div className="mt-2 text-[10px] opacity-70">
+            设置会自动保存
           </div>
         </div>
       )}
