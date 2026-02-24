@@ -2,6 +2,35 @@ function normalizeInlineData(part) {
   return part?.inlineData || part?.inline_data || null;
 }
 
+function normalizeBase64Payload(value) {
+  if (typeof value !== "string") {
+    throw new Error("输入图片编码无效：base64 不是字符串");
+  }
+
+  let base64 = value.trim();
+  if (base64.startsWith("data:")) {
+    const comma = base64.indexOf(",");
+    if (comma < 0) {
+      throw new Error("输入图片编码无效：data URL 缺少逗号分隔");
+    }
+    base64 = base64.slice(comma + 1);
+  }
+
+  base64 = base64.replace(/\s+/g, "").replace(/-/g, "+").replace(/_/g, "/");
+  const mod = base64.length % 4;
+  if (mod) base64 += "=".repeat(4 - mod);
+
+  if (!/^[A-Za-z0-9+/]+=*$/.test(base64)) {
+    throw new Error("输入图片编码无效：不是合法 base64");
+  }
+  return base64;
+}
+
+function normalizeMimeType(value) {
+  const mime = typeof value === "string" ? value.trim() : "";
+  return /^image\/[a-z0-9.+-]+$/i.test(mime) ? mime : "image/png";
+}
+
 function buildImageDataUrl(mimeType, base64Data) {
   const mime = typeof mimeType === "string" && mimeType.trim() ? mimeType : "image/png";
   return `data:${mime};base64,${base64Data}`;
@@ -29,33 +58,36 @@ export function parseGeminiBananaImages(json) {
 
 function buildGenerationConfig({ aspectRatio, imageSize }) {
   const config = {
-    responseModalities: ["TEXT", "IMAGE"]
+    response_modalities: ["TEXT", "IMAGE"]
   };
 
   const imageConfig = {};
   if (typeof aspectRatio === "string" && aspectRatio.trim()) {
-    imageConfig.aspectRatio = aspectRatio.trim();
+    imageConfig.aspect_ratio = aspectRatio.trim();
   }
   if (typeof imageSize === "string" && imageSize.trim()) {
-    imageConfig.imageSize = imageSize.trim();
+    imageConfig.image_size = imageSize.trim();
   }
 
   if (Object.keys(imageConfig).length) {
-    config.imageConfig = imageConfig;
+    config.image_config = imageConfig;
   }
 
   return config;
 }
 
 function buildBody({ prompt, inputImageBase64, inputImageMime, aspectRatio, imageSize }) {
+  const normalizedBase64 = normalizeBase64Payload(inputImageBase64);
+  const normalizedMime = normalizeMimeType(inputImageMime);
+
   const parts = [];
   if (typeof prompt === "string" && prompt.trim()) {
     parts.push({ text: prompt.trim() });
   }
   parts.push({
-    inlineData: {
-      mimeType: inputImageMime,
-      data: inputImageBase64
+    inline_data: {
+      mime_type: normalizedMime,
+      data: normalizedBase64
     }
   });
 
@@ -66,7 +98,7 @@ function buildBody({ prompt, inputImageBase64, inputImageMime, aspectRatio, imag
         parts
       }
     ],
-    generationConfig: buildGenerationConfig({ aspectRatio, imageSize })
+    generation_config: buildGenerationConfig({ aspectRatio, imageSize })
   };
 }
 

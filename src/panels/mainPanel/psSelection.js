@@ -36,6 +36,26 @@ function rgbaToRgbOverWhite(rgba) {
 }
 
 async function encodeImageDataBase64({ imaging, imageData, format }) {
+  const normalizeBase64 = (value) => {
+    if (typeof value !== "string") {
+      throw new Error(`encodeImageData returned non-string value (${typeof value})`);
+    }
+    let str = value.trim();
+    if (str.startsWith("data:")) {
+      const comma = str.indexOf(",");
+      if (comma < 0) throw new Error("encodeImageData returned invalid data URL");
+      str = str.slice(comma + 1);
+    }
+    // Gemini expects a pure base64 payload (no whitespace/newline/data URL prefix).
+    str = str.replace(/\s+/g, "").replace(/-/g, "+").replace(/_/g, "/");
+    const mod = str.length % 4;
+    if (mod) str += "=".repeat(4 - mod);
+    if (!/^[A-Za-z0-9+/]+=*$/.test(str)) {
+      throw new Error("encodeImageData returned invalid base64 payload");
+    }
+    return str;
+  };
+
   const tryCalls = [
     async () => imaging.encodeImageData({ imageData, format, base64: true }),
     async () => imaging.encodeImageData(imageData, { format, base64: true }),
@@ -48,7 +68,7 @@ async function encodeImageDataBase64({ imaging, imageData, format }) {
       const encoded = await fn();
       const str = typeof encoded === "string" ? encoded : encoded?.data;
       if (!str) throw new Error("encodeImageData returned empty result");
-      return str.includes(",") ? str.split(",")[1] : str;
+      return normalizeBase64(str);
     } catch (e) {
       lastError = e;
     }
