@@ -30,9 +30,16 @@ export class PanelController {
 
     create() {
         this[_root] = document.createElement("div");
-        this[_root].style.height = "100vh";
-        this[_root].style.overflow = "auto";
-        this[_root].style.padding = "8px";
+        this[_root].style.height = "100%";
+        this[_root].style.minHeight = "0";
+        this[_root].style.width = "100%";
+        this[_root].style.maxWidth = "100%";
+        this[_root].style.boxSizing = "border-box";
+        this[_root].style.overflowY = "auto";
+        this[_root].style.overflowX = "hidden";
+        this[_root].style.padding = "12px";
+        this[_root].style.display = "flex";
+        this[_root].style.flexDirection = "column";
 
         ReactDOM.render(this[_Component]({panel: this}), this[_root]);
 

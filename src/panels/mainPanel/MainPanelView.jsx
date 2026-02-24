@@ -16,20 +16,31 @@ import {
   writeSettingsToDisk,
 } from "./settingsStorage";
 import {
+  clampImageCount,
+  GEMINI_MODEL_OPTIONS,
+  ProviderAdvancedOptions,
+} from "./components/ProviderAdvancedOptions";
+import {
   btnBase,
+  btnGhost,
   btnPrimary,
   card,
+  cardMeta,
   cardTitle,
+  errorBox,
   fieldBase,
+  feedbackStack,
+  helperText,
+  labelText,
+  panelRoot,
+  sectionTitle,
+  statusBox,
   tabBase,
+  tabActive,
+  tabInactive,
   tabList,
   textareaBase,
 } from "./styles";
-
-const GEMINI_MODEL_OPTIONS = [
-  "gemini-2.5-flash-image",
-  "gemini-3-pro-image-preview",
-];
 
 class PanelErrorBoundary extends React.Component {
   constructor(props) {
@@ -277,10 +288,11 @@ const MainPanelInner = () => {
           : "";
       const cleanedSize =
         typeof settings.size === "string" ? settings.size.trim() : "";
+      const safeRequestedCount = clampImageCount(settings.n);
 
       const dashscopeParameters = isDashscopeProvider
         ? {
-            n: 1,
+            n: safeRequestedCount,
             // Some backends reject empty string; keep empty in UI but send a safe fallback.
             negative_prompt: cleanedNegative.length ? cleanedNegative : " ",
             prompt_extend: Boolean(settings.prompt_extend),
@@ -300,26 +312,37 @@ const MainPanelInner = () => {
 
       if (!urls.length) throw new Error("响应中没有找到可用图片");
 
-      setStatus("已生成，准备预览...");
-      const url = urls[0];
+      setStatus(`已生成 ${urls.length} 张，准备预览...`);
 
-      const id = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-      const newItem = {
-        id,
+      const newItems = urls.map((url, index) => ({
+        id: `${Date.now()}-${index}-${Math.random().toString(16).slice(2)}`,
         url,
         blobUrl: null,
         docId: docIdAtStart,
         boundsAtStart,
-      };
-      setPreviewImageList((list) => [newItem, ...list]);
+      }));
+
+      setPreviewImageList((list) => [...newItems, ...list]);
       setPreviewIndex(0);
       setShowingPreview(true);
 
       // Best-effort: create blob URL so <img> renders reliably.
-      const blobUrl = await tryCreatePreviewObjectUrl(url);
-      if (blobUrl) {
+      const blobPairs = await Promise.all(
+        newItems.map(async (item) => ({
+          id: item.id,
+          blobUrl: await tryCreatePreviewObjectUrl(item.url),
+        })),
+      );
+
+      const blobMap = new Map(
+        blobPairs.filter((it) => it.blobUrl).map((it) => [it.id, it.blobUrl]),
+      );
+      if (blobMap.size) {
         setPreviewImageList((list) =>
-          list.map((it) => (it.id === id ? { ...it, blobUrl } : it)),
+          list.map((it) => {
+            const blobUrl = blobMap.get(it.id);
+            return blobUrl ? { ...it, blobUrl } : it;
+          }),
         );
       }
 
@@ -332,7 +355,7 @@ const MainPanelInner = () => {
         );
         const targetBounds =
           mode === "selection" ? getSelectionBounds() : boundsAtStart;
-        await placeImageUrlAtBounds(url, targetBounds);
+        await placeImageUrlAtBounds(urls[0], targetBounds);
         setStatus("完成");
       } else {
         setStatus("已加入预览");
@@ -401,7 +424,7 @@ const MainPanelInner = () => {
   };
 
   return (
-    <div className="flex flex-col gap-3 text-white">
+    <div className={panelRoot}>
       <div className={tabList} role="tablist" aria-label="Main tabs">
         {tabs.map((tab) => {
           const isActive = tab.id === activeTab;
@@ -411,12 +434,7 @@ const MainPanelInner = () => {
               type="button"
               role="tab"
               aria-selected={isActive}
-              className={
-                tabBase +
-                (isActive
-                  ? " bg-black/20 border-black/30"
-                  : " bg-transparent border-transparent hover:bg-black/10")
-              }
+              className={tabBase + " " + (isActive ? tabActive : tabInactive)}
               onClick={() => setActiveTab(tab.id)}
               disabled={isBusy}
             >
@@ -427,25 +445,22 @@ const MainPanelInner = () => {
       </div>
 
       {activeTab === "home" ? (
-        <div className="flex flex-col gap-3">
-          <div className={card}>
-            <div className="flex items-center justify-between gap-2">
-              <div className={cardTitle}>
-                {showingPreview ? "预览" : "AI 图像编辑"}
-              </div>
-              <div className="text-[10px] opacity-70">
-                {showingPreview
-                  ? `共 ${previewImageList.length} 张`
-                  : `${getProviderLabel(activeProvider)} · 选区 → 生成 → 预览/贴回`}
-              </div>
+        <div className={card}>
+          <div className="flex items-center justify-between gap-2">
+            <div className={cardTitle}>{showingPreview ? "预览" : "AI 图像编辑"}</div>
+            <div className={cardMeta}>
+              {showingPreview
+                ? `共 ${previewImageList.length} 张`
+                : `${getProviderLabel(activeProvider)} · 选区 → 生成 → 预览/贴回`}
             </div>
+          </div>
 
-            <div className="h-2" />
-
-            {showingPreview ? (
+          {showingPreview ? (
+            <div className="flex flex-col gap-3">
               <div className="flex flex-col gap-2">
+                <div className={sectionTitle}>预览区域</div>
                 {previewCurrent ? (
-                  <div className="w-full rounded-md border border-black/10 overflow-hidden bg-black/5">
+                  <div className="w-full rounded-md border border-[color:var(--aya-border)] overflow-hidden bg-[color:var(--aya-preview-bg)] p-2">
                     <img
                       alt="preview"
                       src={previewCurrent.blobUrl || previewCurrent.url}
@@ -453,19 +468,21 @@ const MainPanelInner = () => {
                     />
                   </div>
                 ) : (
-                  <div className="text-xs opacity-70">预览列表为空</div>
+                  <div className={helperText}>预览列表为空</div>
                 )}
+              </div>
 
+              <div className="flex flex-col gap-2">
+                <div className={sectionTitle}>浏览</div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <button
                     type="button"
-                    className={btnBase}
+                    className={btnGhost}
                     onClick={() => setShowingPreview(false)}
                     disabled={isBusy}
                   >
                     返回编辑
                   </button>
-
                   <button
                     type="button"
                     className={btnBase}
@@ -487,7 +504,10 @@ const MainPanelInner = () => {
                     下一张
                   </button>
                 </div>
+              </div>
 
+              <div className="flex flex-col gap-2">
+                <div className={sectionTitle}>输出</div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <button
                     type="button"
@@ -506,7 +526,10 @@ const MainPanelInner = () => {
                     Send to PS（选区）
                   </button>
                 </div>
+              </div>
 
+              <div className="flex flex-col gap-2">
+                <div className={sectionTitle}>管理</div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <button
                     type="button"
@@ -533,158 +556,46 @@ const MainPanelInner = () => {
                     清空
                   </button>
                 </div>
-
-                {previewCurrent ? (
-                  <div className="text-[10px] opacity-70 break-words">
-                    {typeof previewCurrent.url === "string" &&
-                    previewCurrent.url.startsWith("data:")
-                      ? `${previewCurrent.url.slice(0, 80)}...`
-                      : previewCurrent.url}
-                  </div>
-                ) : null}
               </div>
-            ) : (
-              <>
-                <div className="text-[11px] opacity-75">
+
+              {previewCurrent ? (
+                <div className={helperText + " break-words"}>
+                  {typeof previewCurrent.url === "string" &&
+                  previewCurrent.url.startsWith("data:")
+                    ? `${previewCurrent.url.slice(0, 80)}...`
+                    : previewCurrent.url}
+                </div>
+              ) : null}
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-2">
+                <div className={sectionTitle}>输入</div>
+                <div className={helperText}>
                   先选中 PS 里的目标区域，再输入提示词生成结果。
                 </div>
-                <textarea
-                  className={textareaBase + " aya-prompt-textarea"}
-                  rows={6}
-                  placeholder="输入提示词，例如：把自行车改成红色..."
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  disabled={isBusy}
+                <div className="flex flex-col gap-1">
+                  <span className={labelText}>提示词</span>
+                  <textarea
+                    className={textareaBase + " aya-prompt-textarea"}
+                    rows={6}
+                    placeholder="输入提示词，例如：把自行车改成红色..."
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                    disabled={isBusy}
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <ProviderAdvancedOptions
+                  settings={settings}
+                  setSettings={setSettings}
+                  isBusy={isBusy}
+                  isDashscopeProvider={isDashscopeProvider}
                 />
-
-                <div className="h-2" />
-
-                {isDashscopeProvider ? (
-                  <>
-                    <div className="grid grid-cols-2 gap-2">
-                      <label className="flex flex-col gap-1">
-                        <span className="text-xs opacity-80">
-                          size (可选，如 1536*1024)
-                        </span>
-                        <input
-                          className={fieldBase}
-                          type="text"
-                          value={settings.size}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            setSettings((s) => ({ ...s, size: value }));
-                          }}
-                          disabled={isBusy}
-                        />
-                      </label>
-                      <label className="flex flex-col gap-1">
-                        <span className="text-xs opacity-80">
-                          负面提示词
-                        </span>
-                        <input
-                          className={fieldBase}
-                          type="text"
-                          value={settings.negative_prompt}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            setSettings((s) => ({ ...s, negative_prompt: value }));
-                          }}
-                          disabled={isBusy}
-                        />
-                      </label>
-                    </div>
-
-                    <div className="h-2" />
-
-                    <div className="flex items-center gap-4 flex-wrap">
-                      <label className="flex items-center gap-2 text-xs rounded-md border px-2 py-1 aya-pill">
-                        <input
-                          type="checkbox"
-                          checked={Boolean(settings.prompt_extend)}
-                          onChange={(e) => {
-                            const checked = e.target.checked;
-                            setSettings((s) => ({ ...s, prompt_extend: checked }));
-                          }}
-                          disabled={isBusy}
-                        />
-                        <span>提示词优化</span>
-                      </label>
-                      <label className="flex items-center gap-2 text-xs rounded-md border px-2 py-1 aya-pill">
-                        <input
-                          type="checkbox"
-                          checked={Boolean(settings.watermark)}
-                          onChange={(e) => {
-                            const checked = e.target.checked;
-                            setSettings((s) => ({ ...s, watermark: checked }));
-                          }}
-                          disabled={isBusy}
-                        />
-                        <span>水印</span>
-                      </label>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="grid grid-cols-2 gap-2">
-                      <label className="flex flex-col gap-1">
-                        <span className="text-xs opacity-80">
-                          画幅比例 (可选)
-                        </span>
-                        <select
-                          className={fieldBase}
-                          value={settings.geminiAspectRatio || ""}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            setSettings((s) => ({ ...s, geminiAspectRatio: value }));
-                          }}
-                          disabled={isBusy}
-                        >
-                          <option value="">默认</option>
-                          <option value="1:1">1:1</option>
-                          <option value="2:3">2:3</option>
-                          <option value="3:2">3:2</option>
-                          <option value="3:4">3:4</option>
-                          <option value="4:3">4:3</option>
-                          <option value="4:5">4:5</option>
-                          <option value="5:4">5:4</option>
-                          <option value="9:16">9:16</option>
-                          <option value="16:9">16:9</option>
-                          <option value="21:9">21:9</option>
-                        </select>
-                      </label>
-                      <label className="flex flex-col gap-1">
-                        <span className="text-xs opacity-80">
-                          分辨率 (可选)
-                        </span>
-                        <select
-                          className={fieldBase}
-                          value={settings.geminiImageSize || ""}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            setSettings((s) => ({ ...s, geminiImageSize: value }));
-                          }}
-                          disabled={isBusy}
-                        >
-                          <option value="">默认 (1K)</option>
-                          <option value="1K">1K</option>
-                          <option value="2K">2K</option>
-                          <option value="4K">4K</option>
-                        </select>
-                      </label>
-                    </div>
-
-                    <div className="h-2" />
-
-                    <div className="text-[10px] opacity-70">
-                      Gemini 图片会自带 SynthID 水印。
-                    </div>
-                  </>
-                )}
-
-                <div className="h-2" />
-
                 <label className="flex flex-col gap-1">
-                  <span className="text-xs opacity-80">自动发送到 PS</span>
+                  <span className={labelText}>自动发送到 PS</span>
                   <select
                     className={fieldBase}
                     value={settings.autoSendMode || "off"}
@@ -699,8 +610,10 @@ const MainPanelInner = () => {
                     <option value="selection">选区</option>
                   </select>
                 </label>
+              </div>
 
-                <div className="h-2" />
+              <div className="flex flex-col gap-2">
+                <div className={sectionTitle}>动作</div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <button
                     type="button"
@@ -712,36 +625,26 @@ const MainPanelInner = () => {
                   </button>
                   <button
                     type="button"
-                    className={btnBase}
+                    className={btnGhost}
                     onClick={() => setShowingPreview(true)}
                     disabled={isBusy || !previewImageList.length}
                   >
                     显示预览({previewImageList.length})
                   </button>
                 </div>
-              </>
-            )}
-
-            {status ? (
-              <div className="mt-2 text-[10px] opacity-80 break-words">
-                {status}
               </div>
-            ) : null}
-            {error ? (
-              <div className="mt-2 text-[10px] text-red-600 break-words">
-                {error}
-              </div>
-            ) : null}
-          </div>
+            </div>
+          )}
         </div>
       ) : (
         <div className={card}>
           <div className={cardTitle}>设置</div>
-          <div className="h-2" />
+
+          <div className={helperText}>设置会自动保存</div>
 
           <div className="flex flex-col gap-3">
             <label className="flex flex-col gap-1">
-              <span className="text-xs opacity-80">Provider</span>
+              <span className={labelText}>Provider</span>
               <select
                 className={fieldBase}
                 value={activeProvider}
@@ -757,7 +660,7 @@ const MainPanelInner = () => {
             </label>
 
             <label className="flex flex-col gap-1">
-              <span className="text-xs opacity-80">
+              <span className={labelText}>
                 {isGeminiProvider ? "Gemini API Key" : "DashScope API Key"}
               </span>
               <input
@@ -777,7 +680,7 @@ const MainPanelInner = () => {
             </label>
 
             <label className="flex flex-col gap-1">
-              <span className="text-xs opacity-80">模型</span>
+              <span className={labelText}>模型</span>
               {isGeminiProvider ? (
                 <select
                   className={fieldBase}
@@ -807,13 +710,24 @@ const MainPanelInner = () => {
                 />
               )}
             </label>
-          </div>
 
-          <div className="mt-2 text-[10px] opacity-70">
-            设置会自动保存
+            <ProviderAdvancedOptions
+              settings={settings}
+              setSettings={setSettings}
+              isBusy={isBusy}
+              isDashscopeProvider={isDashscopeProvider}
+              compact
+            />
           </div>
         </div>
       )}
+
+      {(status || error) ? (
+        <div className={feedbackStack}>
+          {status ? <div className={statusBox}>{status}</div> : null}
+          {error ? <div className={errorBox}>{error}</div> : null}
+        </div>
+      ) : null}
     </div>
   );
 };

@@ -2,36 +2,134 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer components {
-    .aya-pill,
-    .aya-pill * {
-        color: #fff !important;
-        background-color: transparent !important;
-    }
+:root {
+    --aya-fg: rgba(255, 255, 255, 0.94);
+    --aya-fg-muted: rgba(255, 255, 255, 0.8);
+    --aya-fg-subtle: rgba(255, 255, 255, 0.62);
 
-    .aya-prompt-textarea {
-        background-color: transparent !important;
-        outline: none !important;
-        box-shadow: none !important;
-        border-width: 1px !important;
-        min-height: 9rem !important;
+    --aya-surface: rgba(255, 255, 255, 0.06);
+    --aya-surface-hover: rgba(255, 255, 255, 0.12);
+    --aya-surface-strong: rgba(255, 255, 255, 0.18);
+    --aya-input-bg: rgba(0, 0, 0, 0.06);
+    --aya-preview-bg: rgba(0, 0, 0, 0.18);
+
+    --aya-border: rgba(255, 255, 255, 0.18);
+    --aya-border-strong: rgba(255, 255, 255, 0.28);
+    --aya-ring: rgba(66, 153, 225, 0.7);
+
+    --aya-primary: rgba(66, 153, 225, 0.88);
+    --aya-primary-hover: rgba(66, 153, 225, 0.98);
+    --aya-primary-active: rgba(52, 125, 191, 0.98);
+    --aya-primary-contrast: rgba(255, 255, 255, 0.98);
+
+    --aya-info-bg: rgba(66, 153, 225, 0.15);
+    --aya-info-border: rgba(66, 153, 225, 0.4);
+    --aya-info-fg: rgba(224, 242, 255, 0.96);
+
+    --aya-danger-bg: rgba(234, 88, 108, 0.12);
+    --aya-danger-border: rgba(234, 88, 108, 0.45);
+    --aya-danger-fg: rgba(255, 210, 217, 0.98);
+}
+
+/* UXP 主题信号兜底：深色 */
+.sp-theme-dark,
+.spectrum--dark,
+[data-theme="dark"],
+[data-uxp-theme="dark"] {
+    --aya-fg: rgba(255, 255, 255, 0.94);
+    --aya-fg-muted: rgba(255, 255, 255, 0.8);
+    --aya-fg-subtle: rgba(255, 255, 255, 0.62);
+
+    --aya-surface: rgba(255, 255, 255, 0.06);
+    --aya-surface-hover: rgba(255, 255, 255, 0.12);
+    --aya-surface-strong: rgba(255, 255, 255, 0.18);
+    --aya-input-bg: rgba(0, 0, 0, 0.06);
+    --aya-preview-bg: rgba(0, 0, 0, 0.18);
+
+    --aya-border: rgba(255, 255, 255, 0.18);
+    --aya-border-strong: rgba(255, 255, 255, 0.28);
+    --aya-ring: rgba(66, 153, 225, 0.7);
+
+    --aya-primary: rgba(66, 153, 225, 0.88);
+    --aya-primary-hover: rgba(66, 153, 225, 0.98);
+    --aya-primary-active: rgba(52, 125, 191, 0.98);
+    --aya-primary-contrast: rgba(255, 255, 255, 0.98);
+
+    --aya-info-bg: rgba(66, 153, 225, 0.15);
+    --aya-info-border: rgba(66, 153, 225, 0.4);
+    --aya-info-fg: rgba(224, 242, 255, 0.96);
+
+    --aya-danger-bg: rgba(234, 88, 108, 0.12);
+    --aya-danger-border: rgba(234, 88, 108, 0.45);
+    --aya-danger-fg: rgba(255, 210, 217, 0.98);
+}
+
+@media (prefers-color-scheme: light) {
+    :root {
+        --aya-fg: rgba(15, 23, 42, 0.92);
+        --aya-fg-muted: rgba(15, 23, 42, 0.72);
+        --aya-fg-subtle: rgba(15, 23, 42, 0.52);
+
+        --aya-surface: rgba(15, 23, 42, 0.04);
+        --aya-surface-hover: rgba(15, 23, 42, 0.08);
+        --aya-surface-strong: rgba(15, 23, 42, 0.12);
+        --aya-input-bg: rgba(255, 255, 255, 0.62);
+        --aya-preview-bg: rgba(15, 23, 42, 0.05);
+
+        --aya-border: rgba(15, 23, 42, 0.2);
+        --aya-border-strong: rgba(15, 23, 42, 0.32);
+        --aya-ring: rgba(37, 99, 235, 0.55);
+
+        --aya-primary: rgba(37, 99, 235, 0.9);
+        --aya-primary-hover: rgba(37, 99, 235, 0.98);
+        --aya-primary-active: rgba(29, 78, 216, 0.98);
+        --aya-primary-contrast: rgba(255, 255, 255, 0.98);
+
+        --aya-info-bg: rgba(37, 99, 235, 0.1);
+        --aya-info-border: rgba(37, 99, 235, 0.32);
+        --aya-info-fg: rgba(15, 23, 42, 0.92);
+
+        --aya-danger-bg: rgba(220, 38, 38, 0.1);
+        --aya-danger-border: rgba(220, 38, 38, 0.32);
+        --aya-danger-fg: rgba(127, 29, 29, 0.92);
     }
 }
 
+/* UXP 主题信号兜底：浅色 */
+.sp-theme-light,
+.spectrum--light,
+[data-theme="light"],
+[data-uxp-theme="light"] {
+    --aya-fg: rgba(15, 23, 42, 0.92);
+    --aya-fg-muted: rgba(15, 23, 42, 0.72);
+    --aya-fg-subtle: rgba(15, 23, 42, 0.52);
+
+    --aya-surface: rgba(15, 23, 42, 0.04);
+    --aya-surface-hover: rgba(15, 23, 42, 0.08);
+    --aya-surface-strong: rgba(15, 23, 42, 0.12);
+    --aya-input-bg: rgba(255, 255, 255, 0.62);
+    --aya-preview-bg: rgba(15, 23, 42, 0.05);
+
+    --aya-border: rgba(15, 23, 42, 0.2);
+    --aya-border-strong: rgba(15, 23, 42, 0.32);
+    --aya-ring: rgba(37, 99, 235, 0.55);
+
+    --aya-primary: rgba(37, 99, 235, 0.9);
+    --aya-primary-hover: rgba(37, 99, 235, 0.98);
+    --aya-primary-active: rgba(29, 78, 216, 0.98);
+    --aya-primary-contrast: rgba(255, 255, 255, 0.98);
+
+    --aya-info-bg: rgba(37, 99, 235, 0.1);
+    --aya-info-border: rgba(37, 99, 235, 0.32);
+    --aya-info-fg: rgba(15, 23, 42, 0.92);
+
+    --aya-danger-bg: rgba(220, 38, 38, 0.1);
+    --aya-danger-border: rgba(220, 38, 38, 0.32);
+    --aya-danger-fg: rgba(127, 29, 29, 0.92);
+}
+
 @layer components {
-    .tabbar {
-        @apply flex flex-wrap flex-none p-3 bg-black/25 rounded-b;
-    }
-
-    .tabsection {
-        @apply flex flex-wrap flex-row flex-auto;
-    }
-
-    .tabsection:nth-of-type(2) {
-        @apply justify-end;
-    }
-
-    .tabsection * {
-        @apply mx-1;
+    .aya-prompt-textarea {
+        min-height: 9rem;
     }
 }
