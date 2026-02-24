@@ -1,4 +1,7 @@
 import ReactDOM from "react-dom";
+import { createLogger } from "../panels/mainPanel/logger";
+
+const logger = createLogger("panelController");
 
 const _id = Symbol("_id");
 const _root = Symbol("_root");
@@ -29,6 +32,9 @@ export class PanelController {
     }
 
     create() {
+        logger.info("create.start", "开始创建面板", {
+            id: this[_id],
+        });
         this[_root] = document.createElement("div");
         this[_root].style.height = "100%";
         this[_root].style.minHeight = "0";
@@ -43,25 +49,43 @@ export class PanelController {
 
         ReactDOM.render(this[_Component]({panel: this}), this[_root]);
 
+        logger.info("create.success", "面板创建完成", {
+            id: this[_id],
+        });
+
         return this[_root];
     }
 
     show(event)  {
+        logger.debug("show", "显示面板", {
+            id: this[_id],
+        });
         if (!this[_root]) this.create();
         this[_attachment] = event;
         this[_attachment].appendChild(this[_root]);
     }
 
     hide() {
+        logger.debug("hide", "隐藏面板", {
+            id: this[_id],
+        });
         if (this[_attachment] && this[_root]) {
             this[_attachment].removeChild(this[_root]);
             this[_attachment] = null;
         }
     }
 
-    destroy() { }
+    destroy() {
+        logger.info("destroy", "销毁面板", {
+            id: this[_id],
+        });
+    }
 
     invokeMenu(id) {
+        logger.debug("invokeMenu", "触发菜单项", {
+            panelId: this[_id],
+            menuId: id,
+        });
         const menuItem = this[_menuItems].find(c => c.id === id);
         if (menuItem) {
             const handler = menuItem.oninvoke;

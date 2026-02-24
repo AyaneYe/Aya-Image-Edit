@@ -12,9 +12,16 @@ import { placeImageUrlAtBounds } from "./placeImage";
 import { getSelectionBounds, selectionToImageBase64 } from "./psSelection";
 import {
   defaultSettings,
+  LOG_LEVELS,
   readSettingsFromDisk,
   writeSettingsToDisk,
 } from "./settingsStorage";
+import {
+  configureLoggerFromSettings,
+  createLogger,
+  getLoggerDirectoryInfo,
+} from "./logger";
+import { pickCustomLogDirectory } from "./logStorage";
 import {
   clampImageCount,
   GEMINI_MODEL_OPTIONS,
@@ -27,6 +34,7 @@ import {
   card,
   cardMeta,
   cardTitle,
+  checkboxPill,
   errorBox,
   fieldBase,
   feedbackStack,
@@ -41,6 +49,8 @@ import {
   tabList,
   textareaBase,
 } from "./styles";
+
+const logger = createLogger("mainPanel");
 
 class PanelErrorBoundary extends React.Component {
   constructor(props) {
@@ -81,7 +91,19 @@ const MainPanelInner = () => {
   const [showingPreview, setShowingPreview] = useState(false);
   const [previewImageList, setPreviewImageList] = useState([]);
   const [previewIndex, setPreviewIndex] = useState(0);
+  const [logDirHint, setLogDirHint] = useState("插件数据目录");
   const settingsSaveTimerRef = useRef(null);
+
+  const refreshLogDirHint = async () => {
+    const info = await getLoggerDirectoryInfo().catch(() => null);
+    if (!info) {
+      setLogDirHint("插件数据目录（解析失败，已回退默认目录）");
+      return;
+    }
+
+    const label = info.source === "custom" ? "自定义目录" : "插件数据目录";
+    setLogDirHint(`${label}：${info.hint}`);
+  };
 
   const previewCurrent = previewImageList.length
     ? previewImageList[Math.min(previewIndex, previewImageList.length - 1)]
@@ -200,6 +222,10 @@ const MainPanelInner = () => {
       return { saved: true, target: file.nativePath || file.name };
     } catch (e) {
       const msg = e?.message || String(e);
+      logger.error("save.downloadOrWriteFailed", "下载或写入阶段异常", {
+        error: e,
+        url,
+      });
       if (/not permitted|file picker|Manifest entry not found/i.test(msg)) {
         throw new Error(
           "插件未获得文件选择器权限：请确认 manifest.json 已包含 requiredPermissions.localFileSystem，并在 PS 中重新加载插件后再试",
@@ -223,9 +249,16 @@ const MainPanelInner = () => {
       const loaded = await readSettingsFromDisk();
       if (mounted) {
         setSettings(loaded);
+        configureLoggerFromSettings(loaded);
+        refreshLogDirHint();
         setPrompt(
           typeof loaded.lastPrompt === "string" ? loaded.lastPrompt : "",
         );
+        logger.info("settings.loaded", "设置已加载", {
+          provider: loaded.provider,
+          debugEnabled: loaded.debugEnabled,
+          logLevel: loaded.logLevel,
+        });
       }
     })();
     return () => {
@@ -249,6 +282,14 @@ const MainPanelInner = () => {
   }, [settings, prompt]);
 
   useEffect(() => {
+    configureLoggerFromSettings(settings);
+  }, [settings]);
+
+  useEffect(() => {
+    refreshLogDirHint();
+  }, [settings.logDirMode, settings.logCustomDirToken]);
+
+  useEffect(() => {
     // Keep index valid when list changes
     setPreviewIndex((i) => {
       if (!previewImageList.length) return 0;
@@ -260,16 +301,33 @@ const MainPanelInner = () => {
     setError("");
     setStatus("");
 
+    const startedAt = Date.now();
+
     const providerApiKey = getProviderApiKey(settings, activeProvider);
     if (!providerApiKey) {
+      logger.warn("generate.validation", "缺少 API Key", {
+        provider: activeProvider,
+      });
       setActiveTab("settings");
       setError(`请先在设置中填写 ${getProviderLabel(activeProvider)} API Key`);
       return;
     }
     if (!prompt.trim()) {
+      logger.warn("generate.validation", "提示词为空", {
+        provider: activeProvider,
+      });
       setError("请输入提示词");
       return;
     }
+
+    logger.info("generate.start", "开始生成", {
+      provider: activeProvider,
+      model: settings.model,
+      geminiModel: settings.geminiModel,
+      prompt,
+      n: settings.n,
+      autoSendMode: settings.autoSendMode,
+    });
 
     setIsBusy(true);
     try {
@@ -312,6 +370,12 @@ const MainPanelInner = () => {
 
       if (!urls.length) throw new Error("响应中没有找到可用图片");
 
+      logger.info("generate.success", "生成成功", {
+        provider: activeProvider,
+        count: urls.length,
+        elapsedMs: Date.now() - startedAt,
+      });
+
       setStatus(`已生成 ${urls.length} 张，准备预览...`);
 
       const newItems = urls.map((url, index) => ({
@@ -323,6 +387,9 @@ const MainPanelInner = () => {
       }));
 
       setPreviewImageList((list) => [...newItems, ...list]);
+      logger.debug("preview.listUpdated", "预览列表已更新", {
+        added: newItems.length,
+      });
       setPreviewIndex(0);
       setShowingPreview(true);
 
@@ -345,6 +412,10 @@ const MainPanelInner = () => {
           }),
         );
       }
+      logger.debug("preview.blobBuilt", "预览 blob URL 构建完成", {
+        successCount: blobMap.size,
+        totalCount: newItems.length,
+      });
 
       const mode = settings.autoSendMode || "off";
       if (mode !== "off") {
@@ -356,11 +427,19 @@ const MainPanelInner = () => {
         const targetBounds =
           mode === "selection" ? getSelectionBounds() : boundsAtStart;
         await placeImageUrlAtBounds(urls[0], targetBounds);
+        logger.info("generate.autoSend", "自动发送到 PS 成功", {
+          mode,
+        });
         setStatus("完成");
       } else {
         setStatus("已加入预览");
       }
     } catch (e) {
+      logger.error("generate.failed", "生成失败", {
+        provider: activeProvider,
+        elapsedMs: Date.now() - startedAt,
+        error: e,
+      });
       setError(e?.message || String(e));
       setStatus("");
     } finally {
@@ -386,6 +465,11 @@ const MainPanelInner = () => {
   const onSendToPS = async (mode) => {
     setError("");
     if (!previewCurrent) return;
+    const startedAt = Date.now();
+    logger.info("sendToPs.start", "开始发送到 PS", {
+      mode,
+      hasPreview: Boolean(previewCurrent),
+    });
     setIsBusy(true);
     try {
       setStatus(mode === "selection" ? "贴回选区..." : "贴回原位置...");
@@ -394,8 +478,17 @@ const MainPanelInner = () => {
           ? getSelectionBounds()
           : previewCurrent.boundsAtStart;
       await placeImageUrlAtBounds(previewCurrent.url, targetBounds);
+      logger.info("sendToPs.success", "发送到 PS 成功", {
+        mode,
+        elapsedMs: Date.now() - startedAt,
+      });
       setStatus("完成");
     } catch (e) {
+      logger.error("sendToPs.failed", "发送到 PS 失败", {
+        mode,
+        elapsedMs: Date.now() - startedAt,
+        error: e,
+      });
       setError(e?.message || String(e));
       setStatus("");
     } finally {
@@ -406,16 +499,31 @@ const MainPanelInner = () => {
   const onSaveCurrent = async () => {
     setError("");
     if (!previewCurrent) return;
+    const startedAt = Date.now();
+    logger.info("save.start", "开始保存图片", {
+      hasPreview: Boolean(previewCurrent),
+    });
     setIsBusy(true);
     try {
       setStatus("保存中...");
       const res = await downloadAndSaveImage(previewCurrent.url);
       if (!res?.saved && res?.reason === "canceled") {
+        logger.info("save.canceled", "用户取消保存", {
+          elapsedMs: Date.now() - startedAt,
+        });
         setStatus("已取消");
         return;
       }
+      logger.info("save.success", "保存图片成功", {
+        elapsedMs: Date.now() - startedAt,
+        target: res?.target,
+      });
       setStatus("完成");
     } catch (e) {
+      logger.error("save.failed", "保存图片失败", {
+        elapsedMs: Date.now() - startedAt,
+        error: e,
+      });
       setError(e?.message || String(e));
       setStatus("");
     } finally {
@@ -718,6 +826,91 @@ const MainPanelInner = () => {
               isDashscopeProvider={isDashscopeProvider}
               compact
             />
+
+            <div className="flex flex-col gap-2">
+              <div className={sectionTitle}>调试与日志</div>
+
+              <label className={checkboxPill}>
+                <input
+                  type="checkbox"
+                  checked={Boolean(settings.debugEnabled)}
+                  onChange={(event) => {
+                    const checked = event.target.checked;
+                    setSettings((state) => ({ ...state, debugEnabled: checked }));
+                    logger.info("settings.debugMode", "调试模式切换", {
+                      enabled: checked,
+                    });
+                  }}
+                  disabled={isBusy}
+                />
+                <span>开启调试模式</span>
+              </label>
+
+              <label className="flex flex-col gap-1">
+                <span className={labelText}>日志级别</span>
+                <select
+                  className={fieldBase}
+                  value={settings.logLevel}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    setSettings((state) => ({ ...state, logLevel: value }));
+                  }}
+                  disabled={isBusy || !settings.debugEnabled}
+                >
+                  {LOG_LEVELS.map((level) => (
+                    <option key={level} value={level}>
+                      {level}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="flex flex-col gap-1">
+                <span className={labelText}>日志目录</span>
+                <select
+                  className={fieldBase}
+                  value={settings.logDirMode}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    setSettings((state) => ({ ...state, logDirMode: value }));
+                  }}
+                  disabled={isBusy}
+                >
+                  <option value="appData">插件数据目录</option>
+                  <option value="custom">自定义目录</option>
+                </select>
+              </label>
+
+              {settings.logDirMode === "custom" ? (
+                <button
+                  type="button"
+                  className={btnBase}
+                  disabled={isBusy}
+                  onClick={async () => {
+                    setError("");
+                    try {
+                      const picked = await pickCustomLogDirectory();
+                      if (!picked) {
+                        setStatus("已取消目录选择");
+                        return;
+                      }
+                      setSettings((state) => ({
+                        ...state,
+                        logDirMode: "custom",
+                        logCustomDirToken: picked.token,
+                      }));
+                      setStatus("日志目录已更新");
+                    } catch (e) {
+                      setError(e?.message || String(e));
+                    }
+                  }}
+                >
+                  选择目录
+                </button>
+              ) : null}
+
+              <div className={helperText + " break-words"}>{logDirHint}</div>
+            </div>
           </div>
         </div>
       )}

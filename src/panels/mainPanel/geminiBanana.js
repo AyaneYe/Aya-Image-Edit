@@ -1,3 +1,7 @@
+import { createLogger } from "./logger";
+
+const logger = createLogger("gemini");
+
 function normalizeInlineData(part) {
   return part?.inlineData || part?.inline_data || null;
 }
@@ -121,6 +125,7 @@ export async function geminiBananaGenerate({
   aspectRatio,
   imageSize
 }) {
+  const startedAt = Date.now();
   const safeModel =
     typeof model === "string" && model.trim()
       ? model.trim()
@@ -132,6 +137,15 @@ export async function geminiBananaGenerate({
     inputImageMime,
     aspectRatio,
     imageSize
+  });
+
+  logger.debug("request.start", "Gemini 请求发起", {
+    model: safeModel,
+    prompt,
+    inputImageBase64,
+    inputImageMime,
+    aspectRatio,
+    imageSize,
   });
 
   const res = await fetch(
@@ -149,13 +163,29 @@ export async function geminiBananaGenerate({
   const json = await res.json().catch(() => ({}));
   if (!res.ok) {
     const msg = tryExtractGeminiError(json) || res.statusText;
+    logger.error("request.failed", "Gemini 请求失败", {
+      status: res.status,
+      statusText: res.statusText,
+      elapsedMs: Date.now() - startedAt,
+      message: msg,
+    });
     throw new Error(msg);
   }
 
   const finishReason = json?.candidates?.[0]?.finishReason;
   if (finishReason === "NO_IMAGE") {
+    logger.warn("request.noImage", "Gemini 未返回图片", {
+      elapsedMs: Date.now() - startedAt,
+      finishReason,
+    });
     throw new Error("模型未返回图片，请尝试调整提示词或更换模型");
   }
+
+  logger.info("request.success", "Gemini 请求成功", {
+    status: res.status,
+    elapsedMs: Date.now() - startedAt,
+    imageCount: parseGeminiBananaImages(json).length,
+  });
 
   return json;
 }

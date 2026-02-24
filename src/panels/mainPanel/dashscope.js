@@ -1,3 +1,7 @@
+import { createLogger } from "./logger";
+
+const logger = createLogger("dashscope");
+
 export function parseDashscopeImages(json) {
   const urls = [];
   const content =
@@ -13,6 +17,7 @@ export function parseDashscopeImages(json) {
 }
 
 export async function dashscopeGenerate({ apiKey, model, prompt, inputImageBase64, inputImageMime, parameters }) {
+  const startedAt = Date.now();
   const body = {
     model,
     input: {
@@ -33,6 +38,14 @@ export async function dashscopeGenerate({ apiKey, model, prompt, inputImageBase6
     parameters
   };
 
+  logger.debug("request.start", "DashScope 请求发起", {
+    model,
+    prompt,
+    inputImageBase64,
+    inputImageMime,
+    parameters,
+  });
+
   const res = await fetch(
     "https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation",
     {
@@ -48,7 +61,19 @@ export async function dashscopeGenerate({ apiKey, model, prompt, inputImageBase6
   const json = await res.json().catch(() => ({}));
   if (!res.ok) {
     const msg = json?.message || res.statusText;
+    logger.error("request.failed", "DashScope 请求失败", {
+      status: res.status,
+      statusText: res.statusText,
+      elapsedMs: Date.now() - startedAt,
+      message: msg,
+    });
     throw new Error(msg);
   }
+
+  logger.info("request.success", "DashScope 请求成功", {
+    status: res.status,
+    elapsedMs: Date.now() - startedAt,
+    imageCount: parseDashscopeImages(json).length,
+  });
   return json;
 }
