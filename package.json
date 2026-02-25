@@ -14,6 +14,8 @@
   "author": "Adobe Inc",
   "license": "Apache-2.0",
   "devDependencies": {
+    "@adobe-uxp-types/photoshop": "^0.1.7",
+    "@adobe-uxp-types/uxp": "^0.1.3",
     "@babel/core": "^7.8.7",
     "@babel/plugin-proposal-object-rest-spread": "^7.8.3",
     "@babel/plugin-syntax-class-properties": "^7.10.4",
@@ -33,6 +35,8 @@
     "webpack-cli": "^5.1.4"
   },
   "dependencies": {
+    "@bubblydoo/uxp-toolkit": "^0.0.16",
+    "@bubblydoo/uxp-toolkit-react": "^0.0.17",
     "react": "^16.8.6",
     "react-dom": "^16.8.6"
   },
