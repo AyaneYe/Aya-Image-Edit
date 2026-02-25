@@ -450,7 +450,7 @@ const MainPanelInner = () => {
 
                 {isDashscopeProvider ? (
                   <>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid-cols-2 gap-2">
                       <label className="flex flex-col gap-1">
                         <span className="text-xs opacity-80">
                           size (可选，如 1536*1024)
@@ -514,7 +514,7 @@ const MainPanelInner = () => {
                   </>
                 ) : (
                   <>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid-cols-2 gap-2">
                       <label className="flex flex-col gap-1">
                         <span className="text-xs opacity-80">
                           画幅比例 (可选)
