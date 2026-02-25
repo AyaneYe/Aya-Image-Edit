@@ -1,5 +1,11 @@
-import { dashscopeGenerate, parseDashscopeImages } from "./dashscope";
-import { geminiBananaGenerate, parseGeminiBananaImages } from "./geminiBanana";
+import {
+  dashscopeGenerate,
+  parseDashscopeImages,
+} from "../providers/dashscopeProvider";
+import {
+  geminiBananaGenerate,
+  parseGeminiBananaImages,
+} from "../providers/geminiProvider";
 
 export const PROVIDER_DASHSCOPE = "dashscope";
 export const PROVIDER_GEMINI = "gemini";

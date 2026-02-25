@@ -16,7 +16,10 @@ module.exports = {
         os: 'commonjs2 os'
     },
     resolve: {
-        extensions: [".js", ".jsx"]
+        extensions: [".js", ".jsx"],
+        fallback: {
+            path: false
+        }
     },
     module: {
         rules: [

@@ -1,3 +1,5 @@
+import { executeAsModal } from "@bubblydoo/uxp-toolkit";
+
 function toIntBounds(bounds) {
   const left = Math.floor(bounds.left);
   const top = Math.floor(bounds.top);
@@ -78,12 +80,11 @@ async function encodeImageDataBase64({ imaging, imageData, format }) {
 
 export async function selectionToImageBase64() {
   const photoshop = require("photoshop");
-  const { app, core, imaging } = photoshop;
+  const { app, imaging } = photoshop;
 
   if (!imaging) throw new Error("当前 Photoshop UXP 环境不支持 imaging API");
 
-  const { bounds, rgbaBuffer } = await core.executeAsModal(
-    async () => {
+  const { bounds, rgbaBuffer } = await executeAsModal("Read Selection", async () => {
       const doc = app.activeDocument;
       const sel = doc?.selection?.bounds;
       if (!sel) throw new Error("请先在 Photoshop 中框选一个选区");
@@ -139,12 +140,9 @@ export async function selectionToImageBase64() {
         bounds: { left: b.left, top: b.top, width: b.width, height: b.height },
         rgbaBuffer: out.buffer
       };
-    },
-    { commandName: "Read Selection" }
-  );
+    });
 
-  const result = await core.executeAsModal(
-    async () => {
+  const result = await executeAsModal("Encode Selection Image", async () => {
       if (typeof imaging.encodeImageData !== "function") {
         throw new Error("当前环境不支持图像编码（缺少 imaging.encodeImageData）");
       }
@@ -189,9 +187,7 @@ export async function selectionToImageBase64() {
       } finally {
         imageData.dispose();
       }
-    },
-    { commandName: "Encode Selection Image" }
-  );
+    });
 
   return { bounds, mime: result.mime, base64: result.base64 };
 }

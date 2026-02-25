@@ -37,8 +37,9 @@
   "dependencies": {
     "@bubblydoo/uxp-toolkit": "^0.0.16",
     "@bubblydoo/uxp-toolkit-react": "^0.0.17",
-    "react": "^16.8.6",
-    "react-dom": "^16.8.6"
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "zod": "^4.3.6"
   },
   "resolutions": {
     "acorn": "npm:acorn-with-stage3"
