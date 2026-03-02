@@ -9,7 +9,8 @@
     "uxp:load": "cd dist && uxp plugin load",
     "uxp:reload": "cd dist && uxp plugin reload",
     "uxp:watch": "cd dist && nodemon --exec \"uxp plugin reload\" -e js,css,html",
-    "uxp:debug": "cd dist && uxp plugin debug"
+    "uxp:debug": "cd dist && uxp plugin debug",
+    "uxptool:debug": "pnpm --allow-build=@adobe-fixed-uxp/uxp-devtools-helper dlx @bubblydoo/uxp-cli open-devtools --plugin-path ./dist"
   },
   "author": "Adobe Inc",
   "license": "Apache-2.0",
