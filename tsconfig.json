@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "strict": false,
+    "allowJs": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "types": [
+      "@adobe-uxp-types/photoshop",
+      "@adobe-uxp-types/uxp",
+      "vite/client"
+    ]
+  },
+  "include": [
+    "src/**/*",
+    "vite.config.mjs",
+    "uxp.config.mjs"
+  ]
+}

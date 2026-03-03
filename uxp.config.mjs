@@ -1,0 +1,101 @@
+export const manifest = {
+  id: "io.aya.imageedit",
+  name: "AyaImageEdit",
+  version: "1.0.0",
+  main: "index.html",
+  manifestVersion: 5,
+  host: {
+    app: "PS",
+    minVersion: "26.8.0",
+  },
+  requiredPermissions: {
+    allowCodeGenerationFromStrings: true,
+    localFileSystem: "fullAccess",
+    network: {
+      domains: [
+        "https://dashscope.aliyuncs.com",
+        "https://*.aliyuncs.com",
+        "https://generativelanguage.googleapis.com",
+        "https://*.googleapis.com",
+      ],
+    },
+    launchProcess: {
+      schemes: ["http", "https"],
+      extensions: [".svg", ".png"],
+    },
+    webview: {
+      allow: "yes",
+      allowLocalRendering: "yes",
+      enableMessageBridge: "localAndRemote",
+      domains: [
+        "https://*.adobe.com",
+        "https://*.google.com",
+        "https://dashscope.aliyuncs.com",
+        "https://*.aliyuncs.com",
+        "https://generativelanguage.googleapis.com",
+        "https://*.googleapis.com",
+      ],
+    },
+  },
+  entrypoints: [
+    {
+      type: "panel",
+      id: "demos",
+      label: {
+        default: "AyaImageEdit",
+      },
+      minimumSize: {
+        width: 230,
+        height: 200,
+      },
+      maximumSize: {
+        width: 2000,
+        height: 2000,
+      },
+      preferredDockedSize: {
+        width: 230,
+        height: 300,
+      },
+      preferredFloatingSize: {
+        width: 230,
+        height: 300,
+      },
+      icons: [
+        {
+          width: 32,
+          height: 32,
+          path: "icons/icon_D.png",
+          scale: [1, 2],
+          theme: ["dark", "darkest"],
+          species: ["generic"],
+        },
+        {
+          width: 32,
+          height: 32,
+          path: "icons/icon_N.png",
+          scale: [1, 2],
+          theme: ["lightest", "light"],
+          species: ["generic"],
+        },
+      ],
+    },
+  ],
+  icons: [
+    {
+      width: 32,
+      height: 32,
+      path: "icons/icon_D.png",
+      scale: [1, 2],
+      theme: ["dark", "darkest"],
+      species: ["generic"],
+    },
+    {
+      width: 32,
+      height: 32,
+      path: "icons/icon_N.png",
+      scale: [1, 2],
+      theme: ["lightest", "light"],
+      species: ["generic"],
+    },
+  ],
+};

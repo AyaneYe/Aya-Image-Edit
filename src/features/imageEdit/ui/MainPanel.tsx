@@ -39,13 +39,24 @@ const GEMINI_MODEL_OPTIONS = [
   "gemini-3-pro-image-preview",
 ];
 
-class PanelErrorBoundary extends React.Component {
-  constructor(props) {
+type PanelErrorBoundaryProps = {
+  children?: React.ReactNode;
+};
+
+type PanelErrorBoundaryState = {
+  error: Error | null;
+};
+
+class PanelErrorBoundary extends React.Component<
+  PanelErrorBoundaryProps,
+  PanelErrorBoundaryState
+> {
+  constructor(props: PanelErrorBoundaryProps) {
     super(props);
     this.state = { error: null };
   }
 
-  static getDerivedStateFromError(error) {
+  static getDerivedStateFromError(error: Error): PanelErrorBoundaryState {
     return { error };
   }
 

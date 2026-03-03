@@ -1,4 +1,5 @@
 import React from "react";
+import "@bubblydoo/vite-uxp-plugin/runtime";
 
 import "./styles.css";
 import { MainPanel } from "./features/imageEdit";
