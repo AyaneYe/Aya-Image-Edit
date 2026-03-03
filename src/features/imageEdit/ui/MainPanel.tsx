@@ -306,7 +306,7 @@ const MainPanelInner = () => {
   };
 
   return (
-    <div className="aya-root flex flex-col gap-3">
+    <div className="aya-root flex flex-col gap-4">
       <div className={tabList} role="tablist" aria-label="Main tabs">
         {tabs.map((tab) => {
           const isActive = tab.id === activeTab;
@@ -327,13 +327,13 @@ const MainPanelInner = () => {
       </div>
 
       {activeTab === "home" ? (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-4">
           <div className={card}>
             <div className="flex items-center justify-between gap-2">
               <div className={cardTitle}>
                 {showingPreview ? "预览" : "AI 图像编辑"}
               </div>
-              <div className="text-sm aya-muted">
+              <div className="aya-meta">
                 {showingPreview
                   ? `共 ${previewImageList.length} 张`
                   : `${getProviderLabel(activeProvider)} · 选区 → 生成 → 预览/贴回`}
@@ -443,7 +443,7 @@ const MainPanelInner = () => {
               </div>
             ) : (
               <>
-                <div className="text-base aya-muted">
+                <div className="aya-helper">
                   先选中 PS 里的目标区域，再输入提示词生成结果。
                 </div>
                 <textarea
@@ -457,9 +457,9 @@ const MainPanelInner = () => {
 
                 {isDashscopeProvider ? (
                   <>
-                    <div className="flex gap-3">
-                      <label className="flex flex-1 flex-col gap-1">
-                        <span className="text-sm aya-muted">
+                    <div className="flex gap-4">
+                      <label className="flex flex-1 flex-col gap-2">
+                        <span className="aya-label">
                           size (可选，如 1536*1024)
                         </span>
                         <input
@@ -473,8 +473,8 @@ const MainPanelInner = () => {
                           disabled={isBusy}
                         />
                       </label>
-                      <label className="flex flex-1 flex-col gap-1">
-                        <span className="text-sm aya-muted">
+                      <label className="flex flex-1 flex-col gap-2">
+                        <span className="aya-label">
                           负面提示词
                         </span>
                         <input
@@ -490,10 +490,11 @@ const MainPanelInner = () => {
                       </label>
                     </div>
 
-                    <div className="flex items-center gap-4 flex-wrap">
-                      <label className="flex items-center gap-2 text-xs rounded-md border px-2 py-1 aya-pill">
+                    <div className="flex items-center gap-3 flex-wrap py-1">
+                      <label className="aya-checkpill">
                         <input
                           type="checkbox"
+                          className="aya-check"
                           checked={Boolean(settings.prompt_extend)}
                           onChange={(e) => {
                             const checked = e.target.checked;
@@ -501,11 +502,12 @@ const MainPanelInner = () => {
                           }}
                           disabled={isBusy}
                         />
-                        <span>提示词优化</span>
+                        <span className="aya-checkpill-text">提示词优化</span>
                       </label>
-                      <label className="flex items-center gap-2 text-xs rounded-md border px-2 py-1 aya-pill">
+                      <label className="aya-checkpill">
                         <input
                           type="checkbox"
+                          className="aya-check"
                           checked={Boolean(settings.watermark)}
                           onChange={(e) => {
                             const checked = e.target.checked;
@@ -513,15 +515,15 @@ const MainPanelInner = () => {
                           }}
                           disabled={isBusy}
                         />
-                        <span>水印</span>
+                        <span className="aya-checkpill-text">水印</span>
                       </label>
                     </div>
                   </>
                 ) : (
                   <>
-                    <div className="flex gap-3">
-                      <label className="flex flex-1 flex-col gap-1">
-                        <span className="text-sm aya-muted">
+                    <div className="flex gap-4">
+                      <label className="flex flex-1 flex-col gap-2">
+                        <span className="aya-label">
                           画幅比例 (可选)
                         </span>
                         <select
@@ -546,8 +548,8 @@ const MainPanelInner = () => {
                           <option value="21:9">21:9</option>
                         </select>
                       </label>
-                      <label className="flex flex-1 flex-col gap-1">
-                        <span className="text-sm aya-muted">
+                      <label className="flex flex-1 flex-col gap-2">
+                        <span className="aya-label">
                           分辨率 (可选)
                         </span>
                         <select
@@ -567,14 +569,14 @@ const MainPanelInner = () => {
                       </label>
                     </div>
 
-                    <div className="text-sm aya-subtle">
+                    <div className="aya-meta">
                       Gemini 图片会自带 SynthID 水印。
                     </div>
                   </>
                 )}
 
-                <label className="flex flex-col gap-1">
-                  <span className="text-sm aya-muted">自动发送到 PS</span>
+                <label className="flex flex-col gap-2">
+                  <span className="aya-label">自动发送到 PS</span>
                   <select
                     className={fieldBase}
                     value={settings.autoSendMode || "off"}
@@ -590,7 +592,7 @@ const MainPanelInner = () => {
                   </select>
                 </label>
 
-                <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center gap-3 flex-wrap pt-1">
                   <button
                     type="button"
                     className={btnPrimary}
@@ -622,9 +624,9 @@ const MainPanelInner = () => {
         <div className={card}>
           <div className={cardTitle}>设置</div>
 
-          <div className="flex flex-col gap-3">
-            <label className="flex flex-col gap-1">
-              <span className="text-sm aya-muted">Provider</span>
+          <div className="flex flex-col gap-4">
+            <label className="flex flex-col gap-2">
+              <span className="aya-label">Provider</span>
               <select
                 className={fieldBase}
                 value={activeProvider}
@@ -639,8 +641,8 @@ const MainPanelInner = () => {
               </select>
             </label>
 
-            <label className="flex flex-col gap-1">
-              <span className="text-sm aya-muted">
+            <label className="flex flex-col gap-2">
+              <span className="aya-label">
                 {isGeminiProvider ? "Gemini API Key" : "DashScope API Key"}
               </span>
               <input
@@ -659,8 +661,8 @@ const MainPanelInner = () => {
               />
             </label>
 
-            <label className="flex flex-col gap-1">
-              <span className="text-sm aya-muted">模型</span>
+            <label className="flex flex-col gap-2">
+              <span className="aya-label">模型</span>
               {isGeminiProvider ? (
                 <select
                   className={fieldBase}
@@ -692,7 +694,7 @@ const MainPanelInner = () => {
             </label>
           </div>
 
-          <div className="text-sm aya-subtle">
+          <div className="aya-meta">
             设置会自动保存
           </div>
         </div>

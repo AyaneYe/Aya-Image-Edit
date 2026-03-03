@@ -7,8 +7,8 @@
   --aya-border: #51555b;
   --aya-border-strong: #61666d;
   --aya-text: #f3f4f6;
-  --aya-text-muted: #c5c9cf;
-  --aya-text-subtle: #a6acb5;
+  --aya-text-muted: #d3d8df;
+  --aya-text-subtle: #b6bdc8;
   --aya-primary: #3f8cff;
   --aya-primary-strong: #2f7cf0;
   --aya-success: #39c98a;
@@ -22,7 +22,7 @@
 .aya-root {
   color: var(--aya-text);
   font-size: 14px;
-  line-height: 1.45;
+  line-height: 1.5;
 }
 
 .aya-muted {
@@ -35,23 +35,43 @@
 
 .aya-card {
   border: 1px solid var(--aya-border);
-  border-radius: 10px;
+  border-radius: 14px;
   background: var(--aya-surface);
-  padding: 14px;
+  padding: 20px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
 }
 
 .aya-card-title {
   margin: 0;
-  padding-bottom: 8px;
+  padding-bottom: 10px;
   border-bottom: 1px solid var(--aya-border);
-  font-size: 24px;
-  line-height: 1.2;
+  font-size: 18px;
+  line-height: 1.25;
   font-weight: 700;
-  letter-spacing: 0.2px;
+  letter-spacing: 0.1px;
   color: var(--aya-text);
+}
+
+.aya-meta {
+  font-size: 13px;
+  color: var(--aya-text-subtle);
+  line-height: 1.35;
+}
+
+.aya-label {
+  color: #edf1f7;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.aya-helper {
+  color: var(--aya-text-muted);
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.45;
 }
 
 .aya-tabs {
@@ -98,12 +118,12 @@
   appearance: none;
   -webkit-appearance: none;
   width: 100%;
-  min-height: 34px;
+  min-height: 40px;
   border: 1px solid var(--aya-border);
   border-radius: 8px;
   background: #2b2e32;
   color: var(--aya-text);
-  padding: 7px 10px;
+  padding: 9px 12px;
   font-size: 14px;
   line-height: 1.35;
   outline: none;
@@ -127,7 +147,7 @@
 }
 
 .aya-textarea {
-  min-height: 120px;
+  min-height: 150px;
   resize: none;
 }
 
@@ -136,8 +156,8 @@
   -webkit-appearance: none;
   border-radius: 10px;
   border: 1px solid transparent;
-  min-height: 34px;
-  padding: 0 16px;
+  min-height: 40px;
+  padding: 0 18px;
   font-size: 14px;
   font-weight: 600;
   line-height: 1;
@@ -210,6 +230,53 @@
   color: var(--aya-text);
   background: #43474d;
   border-color: var(--aya-border-strong);
+}
+
+.aya-checkpill {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid #5d626a;
+  border-radius: 8px;
+  background: #3f444b;
+  color: #f3f6fb;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.aya-checkpill-text {
+  color: #ffffff !important;
+  opacity: 1;
+  font-weight: 700;
+}
+
+.aya-checkpill:hover {
+  border-color: #6b717b;
+  background: #464b53;
+}
+
+.aya-check {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border: 1px solid #9aa2ad;
+  border-radius: 4px;
+  background: #2a2e33;
+  display: inline-block;
+}
+
+.aya-check:checked {
+  background: var(--aya-primary);
+  border-color: var(--aya-primary);
+  box-shadow: inset 0 0 0 3px #ffffff;
+}
+
+.aya-check:disabled {
+  opacity: 0.6;
 }
 
 .aya-prompt-textarea {
