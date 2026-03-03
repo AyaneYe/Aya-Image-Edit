@@ -1,52 +1,243 @@
 @import 'tailwindcss';
 
-/*
-  The default border color has changed to `currentcolor` in Tailwind CSS v4,
-  so we've added these compatibility styles to make sure everything still
-  looks the same as it did with Tailwind CSS v3.
-
-  If we ever want to remove these styles, we need to add an explicit border
-  color utility to any element that depends on these defaults.
-*/
-@layer base {
-  *,
-  ::after,
-  ::before,
-  ::backdrop,
-  ::file-selector-button {
-    border-color: var(--color-gray-200, currentcolor);
-  }
+:root {
+  --aya-bg: #2f3134;
+  --aya-surface: #3a3d41;
+  --aya-surface-soft: #34373b;
+  --aya-border: #51555b;
+  --aya-border-strong: #61666d;
+  --aya-text: #f3f4f6;
+  --aya-text-muted: #c5c9cf;
+  --aya-text-subtle: #a6acb5;
+  --aya-primary: #3f8cff;
+  --aya-primary-strong: #2f7cf0;
+  --aya-success: #39c98a;
+  --aya-error: #ff6f7d;
 }
 
-@utility aya-pill {
-  color: #fff !important;
-  background-color: transparent !important;
-  & * {
-    color: #fff !important;
-    background-color: transparent !important;
-  }
+* {
+  box-sizing: border-box;
 }
 
-@utility aya-prompt-textarea {
-  background-color: transparent !important;
-  outline: none !important;
-  box-shadow: none !important;
-  border-width: 1px !important;
-  min-height: 9rem !important;
+.aya-root {
+  color: var(--aya-text);
+  font-size: 14px;
+  line-height: 1.45;
 }
 
-@utility tabbar {
-  @apply flex flex-wrap flex-none p-3 bg-black/25 rounded-b;
+.aya-muted {
+  color: var(--aya-text-muted);
 }
 
-@utility tabsection {
-  @apply flex flex-wrap flex-row flex-auto;
+.aya-subtle {
+  color: var(--aya-text-subtle);
+}
 
-  &:nth-of-type(2) {
-    @apply justify-end;
-  }
+.aya-card {
+  border: 1px solid var(--aya-border);
+  border-radius: 10px;
+  background: var(--aya-surface);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
 
-  & * {
-    @apply mx-1;
-  }
+.aya-card-title {
+  margin: 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--aya-border);
+  font-size: 24px;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  color: var(--aya-text);
+}
+
+.aya-tabs {
+  display: inline-flex;
+  padding: 4px;
+  gap: 6px;
+  border-radius: 12px;
+  border: 1px solid var(--aya-border);
+  background: var(--aya-surface-soft);
+}
+
+.aya-tab {
+  appearance: none;
+  -webkit-appearance: none;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--aya-text-muted);
+  height: 32px;
+  padding: 0 16px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.aya-tab:hover {
+  background: #444950;
+  color: var(--aya-text);
+}
+
+.aya-tab.is-active {
+  background: var(--aya-primary);
+  border-color: var(--aya-primary);
+  color: #ffffff;
+}
+
+.aya-tab:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.aya-field {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  min-height: 34px;
+  border: 1px solid var(--aya-border);
+  border-radius: 8px;
+  background: #2b2e32;
+  color: var(--aya-text);
+  padding: 7px 10px;
+  font-size: 14px;
+  line-height: 1.35;
+  outline: none;
+}
+
+.aya-field:hover {
+  border-color: var(--aya-border-strong);
+}
+
+.aya-field:focus {
+  border-color: var(--aya-primary);
+}
+
+.aya-field::placeholder {
+  color: var(--aya-text-subtle);
+}
+
+.aya-field:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.aya-textarea {
+  min-height: 120px;
+  resize: none;
+}
+
+.aya-btn {
+  appearance: none;
+  -webkit-appearance: none;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  min-height: 34px;
+  padding: 0 16px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.aya-btn--primary {
+  background: var(--aya-primary);
+  border-color: var(--aya-primary);
+  color: #ffffff;
+}
+
+.aya-btn--primary:hover {
+  background: var(--aya-primary-strong);
+  border-color: var(--aya-primary-strong);
+}
+
+.aya-btn--secondary {
+  background: #43474d;
+  border-color: var(--aya-border-strong);
+  color: var(--aya-text);
+}
+
+.aya-btn--secondary:hover {
+  background: #4a4f56;
+}
+
+.aya-btn--ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--aya-text-muted);
+}
+
+.aya-btn--ghost:hover {
+  background: #444950;
+  color: var(--aya-text);
+}
+
+.aya-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.aya-status {
+  border-radius: 8px;
+  border: 1px solid var(--aya-border);
+  padding: 8px 10px;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.aya-status--loading {
+  color: var(--aya-text-muted);
+  background: #30343a;
+}
+
+.aya-status--success {
+  color: var(--aya-success);
+  background: rgba(57, 201, 138, 0.08);
+  border-color: rgba(57, 201, 138, 0.35);
+}
+
+.aya-status--error {
+  color: var(--aya-error);
+  background: rgba(255, 111, 125, 0.08);
+  border-color: rgba(255, 111, 125, 0.35);
+}
+
+.aya-pill {
+  color: var(--aya-text);
+  background: #43474d;
+  border-color: var(--aya-border-strong);
+}
+
+.aya-prompt-textarea {
+  min-height: 120px;
+}
+
+.tabbar {
+  display: flex;
+  flex-wrap: wrap;
+  flex: none;
+  padding: 12px;
+  background: var(--aya-surface-soft);
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+}
+
+.tabsection {
+  display: flex;
+  flex-wrap: wrap;
+  flex-direction: row;
+  flex: auto;
+}
+
+.tabsection:nth-of-type(2) {
+  justify-content: flex-end;
+}
+
+.tabsection * {
+  margin-left: 4px;
+  margin-right: 4px;
 }

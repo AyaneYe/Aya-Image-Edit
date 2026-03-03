@@ -3,6 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <script>
+      globalThis.module = globalThis.module || { exports: {} };
+      globalThis.exports = globalThis.exports || globalThis.module.exports;
       global.screen = {};
       window.WebSocket.prototype.OPEN = 1;
     </script>

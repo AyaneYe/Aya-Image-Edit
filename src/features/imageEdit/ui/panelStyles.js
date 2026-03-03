@@ -1,22 +1,27 @@
-export const tabList =
-  "inline-flex rounded-md border border-black/15 bg-black/5 p-1 gap-1";
-export const tabBase =
-  "px-3 py-1.5 rounded-sm text-xs border transition-colors duration-150";
+// ==================== Tab样式 ====================
+export const tabList = "aya-tabs";
+export const tabBase = "aya-tab";
+export const tabActive = "is-active";
 
-export const card = "rounded-lg border border-black/15 bg-black/5 p-3";
-export const cardTitle = "text-base font-semibold tracking-tight text-white";
+// ==================== Card样式 ====================
+export const card = "aya-card";
+export const cardTitle = "aya-card-title";
 
-export const fieldBase =
-  "w-full h-8 text-xs leading-4 border border-black/15 rounded-md px-2 py-1 bg-transparent text-white " +
-  "placeholder:text-white/45 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-black/20";
+// ==================== 文字层级 ====================
+export const titlePage = "aya-page-title";
+export const titleSection = "aya-section-title";
 
-export const textareaBase =
-  "w-full text-xs rounded-md p-2 bg-transparent resize-none m-0 border border-black/15 text-white " +
-  "focus-visible:outline-hidden";
+// ==================== 输入框样式 ====================
+export const fieldBase = "aya-field";
+export const textareaBase = "aya-field aya-textarea";
 
-export const btnBase =
-  "px-3 py-2 text-xs rounded-md border border-black/25 disabled:opacity-50 disabled:cursor-not-allowed " +
-  "transition-colors duration-150 hover:bg-black/10 active:bg-black/20 " +
-  "focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-black/20";
-export const btnPrimary = btnBase + " bg-black/20 hover:bg-black/30";
-export const btnGhost = btnBase + " bg-transparent";
+// ==================== 按钮样式 ====================
+export const btnBase = "aya-btn aya-btn--secondary";
+export const btnSecondary = "aya-btn aya-btn--secondary";
+export const btnPrimary = "aya-btn aya-btn--primary";
+export const btnGhost = "aya-btn aya-btn--ghost";
+
+// ==================== 状态提示 ====================
+export const statusLoading = "aya-status aya-status--loading";
+export const statusError = "aya-status aya-status--error";
+export const statusSuccess = "aya-status aya-status--success";
