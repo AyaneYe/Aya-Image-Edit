@@ -69,7 +69,7 @@ class PanelErrorBoundary extends React.Component<
       return (
         <div className="flex flex-col gap-2">
           <div className="text-sm">面板发生错误</div>
-          <div className="text-xs text-red-600 break-words">
+          <div className="text-xs text-red-600 wrap-break-word">
             {String(this.state.error?.message || this.state.error)}
           </div>
         </div>
@@ -435,7 +435,7 @@ const MainPanelInner = () => {
                 </div>
 
                 {previewCurrent ? (
-                  <div className="text-[10px] opacity-70 break-words">
+                  <div className="text-[10px] opacity-70 wrap-break-word">
                     {typeof previewCurrent.url === "string" &&
                     previewCurrent.url.startsWith("data:")
                       ? `${previewCurrent.url.slice(0, 80)}...`
@@ -623,12 +623,12 @@ const MainPanelInner = () => {
             )}
 
             {status ? (
-              <div className="mt-2 text-[10px] opacity-80 break-words">
+              <div className="mt-2 text-[10px] opacity-80 wrap-break-word">
                 {status}
               </div>
             ) : null}
             {error ? (
-              <div className="mt-2 text-[10px] text-red-600 break-words">
+              <div className="mt-2 text-[10px] text-red-600 wrap-break-word">
                 {error}
               </div>
             ) : null}
