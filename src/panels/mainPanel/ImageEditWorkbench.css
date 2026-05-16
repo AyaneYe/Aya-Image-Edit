@@ -1,0 +1,225 @@
+.aya-workbench {
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.aya-workbench__rail {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.aya-workbench-card {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--aya-border);
+  border-radius: var(--aya-radius-lg);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.025));
+  box-shadow: var(--aya-shadow);
+  overflow: hidden;
+}
+
+.aya-workbench-card--accent {
+  background:
+    linear-gradient(135deg, rgba(255, 138, 61, 0.18), transparent 32%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.065), rgba(255, 255, 255, 0.025));
+}
+
+.aya-workbench-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 18px 0;
+}
+
+.aya-workbench-card__eyebrow {
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(244, 239, 232, 0.5);
+}
+
+.aya-workbench-card__title {
+  margin: 6px 0 0;
+  font-size: 17px;
+  line-height: 1.2;
+  letter-spacing: -0.03em;
+}
+
+.aya-workbench-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px;
+}
+
+.aya-copy,
+.aya-helper-copy {
+  margin: 0;
+  color: rgba(244, 239, 232, 0.72);
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.aya-step-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.aya-step-list__item {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  align-items: start;
+  color: rgba(244, 239, 232, 0.76);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.aya-step-list__index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 38px;
+  min-height: 24px;
+  padding: 0 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 138, 61, 0.22);
+  background: rgba(255, 138, 61, 0.12);
+  color: #ffbf94;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+.aya-context-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.aya-context-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.aya-context-chip__label {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(244, 239, 232, 0.46);
+}
+
+.aya-context-chip__value {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(244, 239, 232, 0.9);
+}
+
+.aya-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.aya-form-field__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(244, 239, 232, 0.84);
+}
+
+.aya-field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.aya-inline-toggle-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.aya-inline-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.035);
+  color: rgba(244, 239, 232, 0.8);
+  font-size: 12px;
+}
+
+.aya-operation-state {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.aya-operation-state--ready {
+  border-color: rgba(124, 217, 146, 0.18);
+  background: rgba(124, 217, 146, 0.08);
+}
+
+.aya-operation-state--busy {
+  border-color: rgba(255, 138, 61, 0.22);
+  background: rgba(255, 138, 61, 0.09);
+}
+
+.aya-operation-state--error {
+  border-color: rgba(255, 107, 95, 0.28);
+  background: rgba(255, 107, 95, 0.1);
+}
+
+.aya-operation-state__heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(244, 239, 232, 0.7);
+}
+
+.aya-operation-state__copy {
+  color: rgba(244, 239, 232, 0.88);
+  line-height: 1.65;
+  font-size: 13px;
+}
+
+.aya-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+@media (max-width: 920px) {
+  .aya-workbench {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .aya-context-grid,
+  .aya-field-grid {
+    grid-template-columns: 1fr;
+  }
+}

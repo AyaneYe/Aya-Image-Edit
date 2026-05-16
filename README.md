@@ -1,6 +1,7 @@
 # Aya-Image-Edit
 
-Aya~Aya~Aya
+这是一个用于接入各官方api的ps图像编辑插件
+目前只做了OpenAI和阿里的适配，还在持续建设中
 
 # How to run
 克隆本仓库后，在目录下运行`npm install`

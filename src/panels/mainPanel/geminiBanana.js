@@ -1,27 +1,31 @@
+import { hostFetchJson } from "../../bridge/hostBridge.js";
+
 function normalizeInlineData(part) {
   return part?.inlineData || part?.inline_data || null;
 }
 
 function normalizeBase64Payload(value) {
   if (typeof value !== "string") {
-    throw new Error("输入图片编码无效：base64 不是字符串");
+    throw new Error("输入图片的 Base64 数据无效。");
   }
 
   let base64 = value.trim();
   if (base64.startsWith("data:")) {
-    const comma = base64.indexOf(",");
-    if (comma < 0) {
-      throw new Error("输入图片编码无效：data URL 缺少逗号分隔");
+    const commaIndex = base64.indexOf(",");
+    if (commaIndex < 0) {
+      throw new Error("输入图片的 Data URL 无效。");
     }
-    base64 = base64.slice(comma + 1);
+    base64 = base64.slice(commaIndex + 1);
   }
 
   base64 = base64.replace(/\s+/g, "").replace(/-/g, "+").replace(/_/g, "/");
   const mod = base64.length % 4;
-  if (mod) base64 += "=".repeat(4 - mod);
+  if (mod) {
+    base64 += "=".repeat(4 - mod);
+  }
 
   if (!/^[A-Za-z0-9+/]+=*$/.test(base64)) {
-    throw new Error("输入图片编码无效：不是合法 base64");
+    throw new Error("输入图片的 Base64 数据格式错误。");
   }
   return base64;
 }
@@ -42,7 +46,9 @@ export function parseGeminiBananaImages(json) {
 
   for (const candidate of candidates) {
     const parts = candidate?.content?.parts;
-    if (!Array.isArray(parts)) continue;
+    if (!Array.isArray(parts)) {
+      continue;
+    }
 
     for (const part of parts) {
       const inline = normalizeInlineData(part);
@@ -58,7 +64,7 @@ export function parseGeminiBananaImages(json) {
 
 function buildGenerationConfig({ aspectRatio, imageSize }) {
   const config = {
-    response_modalities: ["TEXT", "IMAGE"]
+    response_modalities: ["TEXT", "IMAGE"],
   };
 
   const imageConfig = {};
@@ -79,26 +85,27 @@ function buildGenerationConfig({ aspectRatio, imageSize }) {
 function buildBody({ prompt, inputImageBase64, inputImageMime, aspectRatio, imageSize }) {
   const normalizedBase64 = normalizeBase64Payload(inputImageBase64);
   const normalizedMime = normalizeMimeType(inputImageMime);
-
   const parts = [];
+
   if (typeof prompt === "string" && prompt.trim()) {
     parts.push({ text: prompt.trim() });
   }
+
   parts.push({
     inline_data: {
       mime_type: normalizedMime,
-      data: normalizedBase64
-    }
+      data: normalizedBase64,
+    },
   });
 
   return {
     contents: [
       {
         role: "user",
-        parts
-      }
+        parts,
+      },
     ],
-    generation_config: buildGenerationConfig({ aspectRatio, imageSize })
+    generation_config: buildGenerationConfig({ aspectRatio, imageSize }),
   };
 }
 
@@ -119,7 +126,7 @@ export async function geminiBananaGenerate({
   inputImageBase64,
   inputImageMime,
   aspectRatio,
-  imageSize
+  imageSize,
 }) {
   const safeModel =
     typeof model === "string" && model.trim()
@@ -131,31 +138,31 @@ export async function geminiBananaGenerate({
     inputImageBase64,
     inputImageMime,
     aspectRatio,
-    imageSize
+    imageSize,
   });
 
-  const res = await fetch(
+  const response = await hostFetchJson(
     `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(safeModel)}:generateContent`,
     {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-goog-api-key": apiKey
+        "x-goog-api-key": apiKey,
       },
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
+      timeoutMs: 120000,
     }
   );
 
-  const json = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    const msg = tryExtractGeminiError(json) || res.statusText;
-    throw new Error(msg);
+  if (!response.ok) {
+    const message = tryExtractGeminiError(response.json) || response.statusText || "Gemini 请求失败。";
+    throw new Error(message);
   }
 
-  const finishReason = json?.candidates?.[0]?.finishReason;
+  const finishReason = response.json?.candidates?.[0]?.finishReason;
   if (finishReason === "NO_IMAGE") {
-    throw new Error("模型未返回图片，请尝试调整提示词或更换模型");
+    throw new Error("Gemini 未返回图片结果。");
   }
 
-  return json;
+  return response.json;
 }

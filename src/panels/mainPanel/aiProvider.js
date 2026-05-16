@@ -1,5 +1,5 @@
-import { dashscopeGenerate, parseDashscopeImages } from "./dashscope";
-import { geminiBananaGenerate, parseGeminiBananaImages } from "./geminiBanana";
+import { dashscopeGenerate, parseDashscopeImages } from "./dashscope.js";
+import { geminiBananaGenerate, parseGeminiBananaImages } from "./geminiBanana.js";
 
 export const PROVIDER_DASHSCOPE = "dashscope";
 export const PROVIDER_GEMINI = "gemini";
@@ -10,7 +10,7 @@ export function normalizeProvider(value) {
 
 export function getProviderLabel(provider) {
   const safeProvider = normalizeProvider(provider);
-  return safeProvider === PROVIDER_GEMINI ? "Gemini Banana" : "DashScope";
+  return safeProvider === PROVIDER_GEMINI ? "Gemini" : "DashScope";
 }
 
 export function getProviderApiKey(settings, provider) {
@@ -34,7 +34,7 @@ export async function generateImageByProvider({
   prompt,
   inputImageBase64,
   inputImageMime,
-  dashscopeParameters
+  dashscopeParameters,
 }) {
   const provider = normalizeProvider(settings?.provider);
 
@@ -46,12 +46,12 @@ export async function generateImageByProvider({
       inputImageBase64,
       inputImageMime,
       aspectRatio: settings?.geminiAspectRatio,
-      imageSize: settings?.geminiImageSize
+      imageSize: settings?.geminiImageSize,
     });
     return {
       provider,
       json,
-      urls: parseGeminiBananaImages(json)
+      urls: parseGeminiBananaImages(json),
     };
   }
 
@@ -61,12 +61,12 @@ export async function generateImageByProvider({
     prompt,
     inputImageBase64,
     inputImageMime,
-    parameters: dashscopeParameters
+    parameters: dashscopeParameters,
   });
 
   return {
     provider,
     json,
-    urls: parseDashscopeImages(json)
+    urls: parseDashscopeImages(json),
   };
 }

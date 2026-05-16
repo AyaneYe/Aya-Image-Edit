@@ -1,3 +1,5 @@
+import { hostFetchJson } from "../../bridge/hostBridge.js";
+
 export function parseDashscopeImages(json) {
   const urls = [];
   const content =
@@ -6,13 +8,23 @@ export function parseDashscopeImages(json) {
 
   if (Array.isArray(content)) {
     for (const item of content) {
-      if (item && typeof item.image === "string") urls.push(item.image);
+      if (item && typeof item.image === "string") {
+        urls.push(item.image);
+      }
     }
   }
+
   return urls;
 }
 
-export async function dashscopeGenerate({ apiKey, model, prompt, inputImageBase64, inputImageMime, parameters }) {
+export async function dashscopeGenerate({
+  apiKey,
+  model,
+  prompt,
+  inputImageBase64,
+  inputImageMime,
+  parameters,
+}) {
   const body = {
     model,
     input: {
@@ -21,34 +33,35 @@ export async function dashscopeGenerate({ apiKey, model, prompt, inputImageBase6
           role: "user",
           content: [
             {
-              image: `data:${inputImageMime};base64,${inputImageBase64}`
+              image: `data:${inputImageMime};base64,${inputImageBase64}`,
             },
             {
-              text: prompt
-            }
-          ]
-        }
-      ]
+              text: prompt,
+            },
+          ],
+        },
+      ],
     },
-    parameters
+    parameters,
   };
 
-  const res = await fetch(
+  const response = await hostFetchJson(
     "https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation",
     {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`
+        Authorization: `Bearer ${apiKey}`,
       },
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
+      timeoutMs: 120000,
     }
   );
 
-  const json = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    const msg = json?.message || res.statusText;
-    throw new Error(msg);
+  if (!response.ok) {
+    const message = response.json?.message || response.statusText || "DashScope 请求失败。";
+    throw new Error(message);
   }
-  return json;
+
+  return response.json;
 }

@@ -1,0 +1,51 @@
+.aya-settings-view {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.aya-settings-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-radius: var(--aya-radius-lg);
+  border: 1px solid var(--aya-border);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.02)),
+    radial-gradient(circle at top right, rgba(132, 214, 168, 0.1), transparent 34%);
+  box-shadow: var(--aya-shadow);
+}
+
+.aya-settings-card__header {
+  padding: 18px 18px 0;
+}
+
+.aya-settings-card__title {
+  margin: 6px 0 0;
+  font-size: 17px;
+  line-height: 1.2;
+  letter-spacing: -0.03em;
+}
+
+.aya-settings-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px;
+}
+
+.aya-settings-note {
+  padding: 14px 15px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(244, 239, 232, 0.72);
+  line-height: 1.65;
+  font-size: 13px;
+}
+
+@media (max-width: 920px) {
+  .aya-settings-view {
+    grid-template-columns: 1fr;
+  }
+}
