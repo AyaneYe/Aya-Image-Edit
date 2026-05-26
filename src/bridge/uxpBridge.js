@@ -1,6 +1,27 @@
 let nextRequestId = 0;
 const pendingRequests = new Map();
 
+function formatBridgeErrorMessage(errorPayload) {
+  if (!errorPayload || typeof errorPayload !== "object") {
+    return "未知桥接错误";
+  }
+
+  const message =
+    typeof errorPayload.message === "string" && errorPayload.message.trim()
+      ? errorPayload.message.trim()
+      : "未知桥接错误";
+  const details =
+    typeof errorPayload.details === "string" && errorPayload.details.trim()
+      ? errorPayload.details.trim()
+      : "";
+
+  if (!details || details === message) {
+    return message;
+  }
+
+  return `${message}\n${details}`;
+}
+
 export function isInWebView() {
   return (
     typeof window !== "undefined" &&
@@ -42,7 +63,11 @@ if (typeof window !== "undefined") {
     pendingRequests.delete(String(payload.id));
 
     if (payload.error) {
-      request.reject(new Error(payload.error.message || "未知桥接错误"));
+      const error = new Error(formatBridgeErrorMessage(payload.error));
+      if (typeof payload.error.stack === "string" && payload.error.stack.trim()) {
+        error.stack = payload.error.stack;
+      }
+      request.reject(error);
       return;
     }
 

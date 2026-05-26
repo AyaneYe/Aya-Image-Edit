@@ -12,7 +12,12 @@ import { placeImageUrlAtBounds } from "./placeImage.js";
 import { getSelectionBounds, selectionToImageBase64 } from "./psSelection.js";
 import { defaultSettings } from "./sharedSettings.js";
 import { readSettingsFromDisk, writeSettingsToDisk } from "./settingsStorage.js";
-import { saveGeneratedImageToHost } from "../../bridge/hostBridge.js";
+import {
+  runAddNeutralGrayLayerInHost,
+  runRemoveBlemishRetouchInHost,
+  runSetSoftWhiteBrushInHost,
+  saveGeneratedImageToHost,
+} from "../../bridge/hostBridge.js";
 
 function createPreviewItem(url, boundsAtStart, docId, batchKey, index) {
   return {
@@ -192,6 +197,43 @@ export function useImageEditWorkbench() {
     }
   };
 
+  const runRetouchShortcut = async (options) => {
+    clearFeedback();
+
+    setIsBusy(true);
+    try {
+      setStatus(options.runningStatus);
+      await options.run();
+      setStatus(options.successStatus);
+    } catch (cause) {
+      setStatus("");
+      setError(cause?.message || String(cause));
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  const onRunRemoveBlemishRetouch = async () =>
+    runRetouchShortcut({
+      runningStatus: "正在复制图层并打开蒙尘与划痕...",
+      successStatus: "去除瑕疵图层已创建，并已添加黑色蒙版。",
+      run: () => runRemoveBlemishRetouchInHost(),
+    });
+
+  const onRunAddNeutralGrayLayer = async () =>
+    runRetouchShortcut({
+      runningStatus: "正在添加中性灰层...",
+      successStatus: "中性灰层已添加。",
+      run: () => runAddNeutralGrayLayerInHost(),
+    });
+
+  const onRunSetSoftWhiteBrush = async () =>
+    runRetouchShortcut({
+      runningStatus: "正在切换到瑕疵笔刷...",
+      successStatus: "画笔已切换为白色软圆笔刷。",
+      run: () => runSetSoftWhiteBrushInHost(),
+    });
+
   const onSendSelectedPreview = async (mode) => {
     clearFeedback();
 
@@ -295,6 +337,9 @@ export function useImageEditWorkbench() {
     onClearPreviews,
     onDeleteSelectedPreview,
     onGenerate,
+    onRunAddNeutralGrayLayer,
+    onRunRemoveBlemishRetouch,
+    onRunSetSoftWhiteBrush,
     onOpenSettings: () => {
       if (!isBusy) {
         setActiveView("settings");

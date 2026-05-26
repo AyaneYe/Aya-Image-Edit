@@ -1,6 +1,8 @@
 import { defaultSettings } from "../../src/panels/mainPanel/sharedSettings.js";
 
 const SETTINGS_FILE_NAME = "settings.json";
+const SOFT_WHITE_BRUSH_PRESET_FILE_NAME = "Soft_Brush.tpl";
+const SOFT_WHITE_BRUSH_PRESET_NAME = "DR4 Soft Brush";
 
 export async function readSettingsFromDiskHost() {
   try {
@@ -407,6 +409,354 @@ async function maybeAwait(value) {
   }
 }
 
+function getActiveDocumentOrThrow(app) {
+  const documentRef = app?.activeDocument || null;
+  if (!documentRef) {
+    throw new Error("请先打开一个 Photoshop 文档。");
+  }
+  return documentRef;
+}
+
+function getActiveLayerOrThrow(documentRef) {
+  const activeLayer = documentRef?.activeLayers?.[0] || null;
+  if (!activeLayer) {
+    throw new Error("请先在 Photoshop 中选择一个图层。");
+  }
+  return activeLayer;
+}
+
+async function setActiveLayerProperties(action, properties = {}) {
+  const layerDescriptor = { _obj: "layer" };
+
+  if (typeof properties.name === "string" && properties.name.trim()) {
+    layerDescriptor.name = properties.name.trim();
+  }
+
+  if (typeof properties.blendMode === "string" && properties.blendMode.trim()) {
+    layerDescriptor.mode = {
+      _enum: "blendMode",
+      _value: properties.blendMode.trim(),
+    };
+  }
+
+  if (Number.isFinite(properties.opacity)) {
+    layerDescriptor.opacity = {
+      _unit: "percentUnit",
+      _value: properties.opacity,
+    };
+  }
+
+  if (Number.isFinite(properties.fillOpacity)) {
+    layerDescriptor.fillOpacity = {
+      _unit: "percentUnit",
+      _value: properties.fillOpacity,
+    };
+  }
+
+  const keys = Object.keys(layerDescriptor);
+  if (keys.length <= 1) {
+    return;
+  }
+
+  await action.batchPlay(
+    [
+      {
+        _obj: "set",
+        _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
+        to: layerDescriptor,
+        _options: { dialogOptions: "silent" },
+      },
+    ],
+    { synchronousExecution: true, modalBehavior: "execute" }
+  );
+}
+
+async function duplicateActiveLayer(action) {
+  await action.batchPlay(
+    [
+      {
+        _obj: "duplicate",
+        _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
+        _options: { dialogOptions: "silent" },
+      },
+    ],
+    { synchronousExecution: true, modalBehavior: "execute" }
+  );
+}
+
+async function openDustAndScratchesDialog(action) {
+  try {
+    await action.batchPlay(
+      [
+        {
+          _obj: "dustAndScratches",
+          radius: { _unit: "pixelsUnit", _value: 8 },
+          threshold: 0,
+          _options: { dialogOptions: "display" },
+        },
+      ],
+      { synchronousExecution: true, modalBehavior: "execute" }
+    );
+  } catch (error) {
+    const message = error?.message || String(error);
+    if (/cancel/i.test(message)) {
+      throw new Error("已取消蒙尘与划痕调整。");
+    }
+    throw error;
+  }
+}
+
+async function addHideAllLayerMask(action) {
+  await action.batchPlay(
+    [
+      {
+        _obj: "make",
+        new: { _class: "channel" },
+        at: { _ref: "channel", _enum: "channel", _value: "mask" },
+        using: { _enum: "userMaskEnabled", _value: "hideAll" },
+        _options: { dialogOptions: "silent" },
+      },
+    ],
+    { synchronousExecution: true, modalBehavior: "execute" }
+  );
+}
+
+function createSolidRgbColor(app, red, green, blue) {
+  const SolidColor = app.SolidColor;
+  const color = new SolidColor();
+  color.rgb.red = red;
+  color.rgb.green = green;
+  color.rgb.blue = blue;
+  return color;
+}
+
+async function findEntryByName(folder, expectedName) {
+  if (!folder || typeof folder.getEntries !== "function") {
+    return null;
+  }
+
+  const entries = await folder.getEntries();
+  return entries.find((entry) => entry?.name === expectedName) || null;
+}
+
+async function getBundledSoftWhiteBrushPresetFile() {
+  const uxp = require("uxp");
+  const fs = uxp.storage.localFileSystem;
+  const pluginFolder = await fs.getPluginFolder();
+  const presetsFolder = await findEntryByName(pluginFolder, "presets");
+  if (!presetsFolder) {
+    throw new Error("插件内未找到 presets 目录。");
+  }
+
+  const presetFile = await findEntryByName(presetsFolder, SOFT_WHITE_BRUSH_PRESET_FILE_NAME);
+  if (!presetFile) {
+    throw new Error(`插件内未找到画笔预设文件：${SOFT_WHITE_BRUSH_PRESET_FILE_NAME}`);
+  }
+
+  return {
+    fs,
+    presetFile,
+    presetFsUrl: typeof fs.getFsUrl === "function" ? fs.getFsUrl(presetFile) : presetFile.name,
+  };
+}
+
+async function importToolPresetFromFile(action, fs, presetFile) {
+  const token = fs.createSessionToken(presetFile);
+
+  await action.batchPlay(
+    [
+      {
+        _obj: "set",
+        _target: [
+          { _property: "toolPreset" },
+          { _ref: "application", _enum: "ordinal", _value: "targetEnum" },
+        ],
+        to: {
+          _path: token,
+          _kind: "local",
+        },
+        append: true,
+        _options: { dialogOptions: "silent" },
+      },
+    ],
+    { synchronousExecution: true, modalBehavior: "execute" }
+  );
+}
+
+async function selectPaintBrushTool(action) {
+  await action.batchPlay(
+    [
+      {
+        _obj: "select",
+        _target: [{ _ref: "paintbrushTool" }],
+        dontRecord: true,
+        _options: { dialogOptions: "silent" },
+      },
+    ],
+    { synchronousExecution: true, modalBehavior: "execute" }
+  );
+}
+
+async function selectToolPresetByName(action, presetName) {
+  await action.batchPlay(
+    [
+      {
+        _obj: "select",
+        _target: [{ _ref: "toolPreset", _name: presetName }],
+        dontRecord: true,
+        _options: { dialogOptions: "silent" },
+      },
+    ],
+    { synchronousExecution: true, modalBehavior: "execute" }
+  );
+}
+
+async function getCurrentToolOptions(action) {
+  const response = await action.batchPlay(
+    [
+      {
+        _obj: "get",
+        _target: [
+          { _property: "currentToolOptions" },
+          { _ref: "application", _enum: "ordinal", _value: "targetEnum" },
+        ],
+      },
+    ],
+    { synchronousExecution: true, modalBehavior: "execute" }
+  );
+
+  const toolOptions = response?.[0]?.currentToolOptions;
+  if (!toolOptions || typeof toolOptions !== "object") {
+    throw new Error("无法读取当前画笔工具参数。");
+  }
+  return toolOptions;
+}
+
+function setUnitValue(target, key, unit, value) {
+  if (!target[key] || typeof target[key] !== "object") {
+    target[key] = {};
+  }
+
+  target[key]._unit = unit;
+  target[key]._value = value;
+}
+
+function patchBrushVariation(variation, brushValueType = 0) {
+  if (!variation || typeof variation !== "object") {
+    return;
+  }
+
+  variation.bVTy = brushValueType;
+  variation.fStp = 25;
+  setUnitValue(variation, "jitter", "percentUnit", 0);
+  setUnitValue(variation, "minimum", "percentUnit", 0);
+}
+
+function patchSoftWhiteBrushToolOptions(toolOptions) {
+  toolOptions._obj = toolOptions._obj || "currentToolOptions";
+  toolOptions.flow = 15;
+  toolOptions.opacity = 100;
+  toolOptions.mode = { _enum: "blendMode", _value: "normal" };
+  toolOptions.smooth = 0;
+  toolOptions.usePressureOverridesSize = false;
+  toolOptions.usePressureOverridesOpacity = false;
+
+  toolOptions.brush = {
+    _obj: "computedBrush",
+  };
+  setUnitValue(toolOptions.brush, "diameter", "pixelsUnit", 300);
+  setUnitValue(toolOptions.brush, "hardness", "percentUnit", 0);
+  setUnitValue(toolOptions.brush, "angle", "angleUnit", 0);
+  setUnitValue(toolOptions.brush, "roundness", "percentUnit", 100);
+  setUnitValue(toolOptions.brush, "spacing", "percentUnit", 25);
+  toolOptions.brush.interpolation = true;
+  toolOptions.brush.flipX = false;
+  toolOptions.brush.flipY = false;
+  toolOptions.brush.useTipDynamics = true;
+  toolOptions.brush.brushProjection = false;
+  setUnitValue(toolOptions.brush, "minimumDiameter", "percentUnit", 0);
+  setUnitValue(toolOptions.brush, "minimumRoundness", "percentUnit", 25);
+  setUnitValue(toolOptions.brush, "tiltScale", "percentUnit", 100);
+
+  patchBrushVariation(toolOptions.$opVr || toolOptions.opVr, 0);
+  patchBrushVariation(toolOptions.$prVr || toolOptions.prVr, 0);
+  patchBrushVariation(toolOptions.$szVr || toolOptions.szVr, 2);
+
+  return toolOptions;
+}
+
+async function setPaintBrushToolOptions(action, toolOptions) {
+  const command = {
+    _obj: "set",
+    _target: { _ref: "paintbrushTool" },
+    to: toolOptions,
+    _options: { dialogOptions: "silent" },
+  };
+
+  try {
+    await action.batchPlay([command], {
+      synchronousExecution: true,
+      modalBehavior: "execute",
+    });
+    return;
+  } catch (firstError) {
+    try {
+      await action.batchPlay(
+        [
+          {
+            ...command,
+            _target: { _ref: [{ _ref: "paintbrushTool" }] },
+          },
+        ],
+        { synchronousExecution: true, modalBehavior: "execute" }
+      );
+    } catch (secondError) {
+      throw new Error(
+        `写入画笔工具参数失败：${secondError?.message || secondError || firstError?.message || firstError}`
+      );
+    }
+  }
+}
+
+async function applySoftWhiteBrushToolOptions(action) {
+  await selectPaintBrushTool(action);
+  const toolOptions = await getCurrentToolOptions(action);
+  await setPaintBrushToolOptions(action, patchSoftWhiteBrushToolOptions(toolOptions));
+}
+
+async function ensureSoftWhiteBrushPresetApplied(action) {
+  const { fs, presetFile, presetFsUrl } = await getBundledSoftWhiteBrushPresetFile();
+  let presetApplyFailure = "";
+
+  try {
+    try {
+      await selectToolPresetByName(action, SOFT_WHITE_BRUSH_PRESET_NAME);
+    } catch (error) {
+      presetApplyFailure = error?.message || String(error);
+      await importToolPresetFromFile(action, fs, presetFile);
+      try {
+        await selectToolPresetByName(action, SOFT_WHITE_BRUSH_PRESET_NAME);
+        presetApplyFailure = "";
+      } catch (selectAfterImportError) {
+        presetApplyFailure = selectAfterImportError?.message || String(selectAfterImportError);
+      }
+    }
+
+    await applySoftWhiteBrushToolOptions(action);
+    return {
+      stage: "applied-brush-options",
+      method: presetApplyFailure
+        ? `direct paintbrush options (${presetFsUrl}; preset select fallback: ${presetApplyFailure})`
+        : `tool preset + direct paintbrush options (${presetFsUrl})`,
+    };
+  } catch (error) {
+    const message = `导入预设文件失败 (${presetFsUrl}): ${error?.message || String(error)}`;
+    const wrappedError = new Error(message);
+    wrappedError.details = message;
+    throw wrappedError;
+  }
+}
+
 function normalizeTargetBounds(bounds) {
   const left = unitToNumber(bounds?.left);
   const top = unitToNumber(bounds?.top);
@@ -611,4 +961,121 @@ export async function placeImageUrlAtBoundsHost(imageUrl, bounds) {
     },
     { commandName: "放置 AI 结果" }
   );
+}
+
+export async function runRemoveBlemishRetouchHost() {
+  const photoshop = require("photoshop");
+  const { app, action, core } = photoshop;
+
+  getActiveDocumentOrThrow(app);
+
+  await core.executeAsModal(
+    async () => {
+      const activeDocument = getActiveDocumentOrThrow(app);
+      getActiveLayerOrThrow(activeDocument);
+
+      await duplicateActiveLayer(action);
+
+      await setActiveLayerProperties(action, {
+        name: "去除瑕疵",
+        blendMode: "normal",
+        opacity: 100,
+        fillOpacity: 100,
+      });
+
+      await openDustAndScratchesDialog(action);
+      await addHideAllLayerMask(action);
+    },
+    { commandName: "去除瑕疵" }
+  );
+
+  return {
+    ok: true,
+    action: "removeBlemish",
+  };
+}
+
+export async function runAddNeutralGrayLayerHost() {
+  const photoshop = require("photoshop");
+  const { app, action, core } = photoshop;
+
+  getActiveDocumentOrThrow(app);
+
+  await core.executeAsModal(
+    async () => {
+      getActiveDocumentOrThrow(app);
+
+      await action.batchPlay(
+        [
+          {
+            _obj: "make",
+            _target: [{ _ref: "layer" }],
+            using: {
+              _obj: "layer",
+              name: "中性灰",
+              mode: { _enum: "blendMode", _value: "softLight" },
+              opacity: { _unit: "percentUnit", _value: 100 },
+              fillNeutral: true,
+            },
+            _options: { dialogOptions: "silent" },
+          },
+        ],
+        { synchronousExecution: true, modalBehavior: "execute" }
+      );
+
+      await setActiveLayerProperties(action, {
+        name: "中性灰",
+        blendMode: "softLight",
+        opacity: 100,
+        fillOpacity: 100,
+      });
+    },
+    { commandName: "添加中性灰层" }
+  );
+
+  return {
+    ok: true,
+    action: "addNeutralGrayLayer",
+  };
+}
+
+export async function runSetSoftWhiteBrushHost() {
+  const photoshop = require("photoshop");
+  const { app, action, core } = photoshop;
+  let brushFailureDetails = "";
+
+  try {
+    await core.executeAsModal(
+      async () => {
+        try {
+          await ensureSoftWhiteBrushPresetApplied(action);
+        } catch (error) {
+          brushFailureDetails = error?.details || error?.message || String(error);
+          throw error;
+        }
+
+        app.foregroundColor = createSolidRgbColor(app, 255, 255, 255);
+      },
+      { commandName: "设置瑕疵笔刷" }
+    );
+  } catch (error) {
+    const details = (
+      brushFailureDetails ||
+      error?.details ||
+      error?.message ||
+      String(error) ||
+      "未知错误"
+    ).trim();
+    const message = details.startsWith("瑕疵笔刷预设应用失败。")
+      ? details
+      : `瑕疵笔刷预设应用失败。\n${details}`;
+    const wrappedError = new Error(message);
+    wrappedError.details = message;
+    throw wrappedError;
+  }
+
+  return {
+    ok: true,
+    action: "setSoftWhiteBrush",
+  };
 }

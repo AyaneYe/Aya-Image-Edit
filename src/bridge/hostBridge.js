@@ -66,6 +66,18 @@ export function placeImageAtBoundsInHost(imageUrl, bounds) {
   return invokeHost("ps.placeImageAtBounds", imageUrl, bounds);
 }
 
+export function runRemoveBlemishRetouchInHost() {
+  return invokeHost("ps.retouchRemoveBlemish");
+}
+
+export function runAddNeutralGrayLayerInHost() {
+  return invokeHost("ps.retouchAddNeutralGrayLayer");
+}
+
+export function runSetSoftWhiteBrushInHost() {
+  return invokeHost("ps.retouchSetSoftWhiteBrush");
+}
+
 export function isHostBridgeAvailable() {
   return isInWebView();
 }

@@ -6,6 +6,9 @@ import {
   getSelectionBoundsHost,
   placeImageUrlAtBoundsHost,
   readSettingsFromDiskHost,
+  runAddNeutralGrayLayerHost,
+  runRemoveBlemishRetouchHost,
+  runSetSoftWhiteBrushHost,
   selectionToImageBase64Host,
   writeSettingsToDiskHost,
 } from "./imageEditRuntime.js";
@@ -23,6 +26,15 @@ function bridgeHostLog(level, message, payload) {
     return;
   }
   fn(`[AyaImageEdit][bridge-host] ${message}`, payload);
+}
+
+function serializeBridgeError(error) {
+  return {
+    message: error?.message || String(error),
+    details:
+      typeof error?.details === "string" && error.details.trim() ? error.details.trim() : "",
+    stack: error?.stack || "",
+  };
 }
 
 function sendToWebview(payload) {
@@ -129,6 +141,12 @@ async function handleBridgeCall(method, args) {
       return selectionToImageBase64Host();
     case "ps.placeImageAtBounds":
       return placeImageUrlAtBoundsHost(args[0], args[1]);
+    case "ps.retouchRemoveBlemish":
+      return runRemoveBlemishRetouchHost();
+    case "ps.retouchAddNeutralGrayLayer":
+      return runAddNeutralGrayLayerHost();
+    case "ps.retouchSetSoftWhiteBrush":
+      return runSetSoftWhiteBrushHost();
     case "ps.batchPlay":
       return photoshop.action.batchPlay(args[0] || [], args[1] || {});
     case "network.fetch":
@@ -169,17 +187,17 @@ export function setupBridge(webviewEl) {
         const result = await handleBridgeCall(method, args);
         sendToWebview({ id, result });
       } catch (error) {
+        const serializedError = serializeBridgeError(error);
         bridgeHostLog("error", "bridge call failed", {
           id,
           method,
-          message: error?.message || String(error),
-          stack: error?.stack || "",
+          message: serializedError.message,
+          details: serializedError.details,
+          stack: serializedError.stack,
         });
         sendToWebview({
           id,
-          error: {
-            message: error?.message || String(error),
-          },
+          error: serializedError,
         });
       }
     };

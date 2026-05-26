@@ -53,6 +53,7 @@ export default (env, argv = {}) => {
       { from: "plugin/app.html", to: "app.html" },
       { from: "plugin/app-shell.js", to: "app-shell.js" },
       { from: "plugin/icons", to: "icons", noErrorOnMissing: true },
+      { from: "plugin/presets", to: "presets", noErrorOnMissing: true },
     ],
   });
 

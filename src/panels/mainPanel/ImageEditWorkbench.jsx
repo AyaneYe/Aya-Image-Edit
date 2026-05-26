@@ -4,7 +4,15 @@ import { ResultWorkspace } from "./ResultWorkspace.jsx";
 
 import "./ImageEditWorkbench.css";
 
-const InputContextCard = ({ previewCount, providerLabel, settings }) => (
+const InputContextCard = ({
+  isBusy,
+  onRunAddNeutralGrayLayer,
+  onRunRemoveBlemishRetouch,
+  onRunSetSoftWhiteBrush,
+  previewCount,
+  providerLabel,
+  settings,
+}) => (
   <section className="aya-workbench-card aya-workbench-card--accent">
     <div className="aya-workbench-card__header">
       <div>
@@ -32,6 +40,36 @@ const InputContextCard = ({ previewCount, providerLabel, settings }) => (
         <div className="aya-context-chip">
           <span className="aya-context-chip__label">结果数</span>
           <span className="aya-context-chip__value">{previewCount}</span>
+        </div>
+      </div>
+
+      <div className="aya-retouch-shortcuts">
+        <div className="aya-retouch-shortcuts__label">快速修图</div>
+        <div className="aya-retouch-shortcuts__actions">
+          <button
+            type="button"
+            className="aya-button aya-button--ghost aya-retouch-shortcuts__button"
+            onClick={onRunRemoveBlemishRetouch}
+            disabled={isBusy}
+          >
+            去除瑕疵
+          </button>
+          <button
+            type="button"
+            className="aya-button aya-button--ghost aya-retouch-shortcuts__button"
+            onClick={onRunAddNeutralGrayLayer}
+            disabled={isBusy}
+          >
+            添加中性灰层
+          </button>
+          <button
+            type="button"
+            className="aya-button aya-button--ghost aya-retouch-shortcuts__button"
+            onClick={onRunSetSoftWhiteBrush}
+            disabled={isBusy}
+          >
+            瑕疵笔刷
+          </button>
         </div>
       </div>
     </div>
@@ -215,7 +253,7 @@ const OperationCard = ({ error, isBusy, onGenerate, onOpenSettings, previewCount
       <div className="aya-workbench-card__body">
         <div className={"aya-operation-state" + toneClass}>
           <div className="aya-operation-state__heading">
-            <span>{error ? "需处理" : isBusy ? "生成中" : "就绪"}</span>
+            <span>{error ? "需处理" : isBusy ? "处理中" : "就绪"}</span>
             <span>{previewCount} 张结果</span>
           </div>
           <div className="aya-operation-state__copy">{copy}</div>
@@ -246,6 +284,9 @@ export const ImageEditWorkbench = (props) => {
     isDashscopeProvider,
     onGenerate,
     onOpenSettings,
+    onRunAddNeutralGrayLayer,
+    onRunRemoveBlemishRetouch,
+    onRunSetSoftWhiteBrush,
     previewCount,
     prompt,
     providerLabel,
@@ -258,7 +299,15 @@ export const ImageEditWorkbench = (props) => {
   return (
     <div className="aya-workbench">
       <div className="aya-workbench__rail">
-        <InputContextCard previewCount={previewCount} providerLabel={providerLabel} settings={settings} />
+        <InputContextCard
+          isBusy={isBusy}
+          onRunAddNeutralGrayLayer={onRunAddNeutralGrayLayer}
+          onRunRemoveBlemishRetouch={onRunRemoveBlemishRetouch}
+          onRunSetSoftWhiteBrush={onRunSetSoftWhiteBrush}
+          previewCount={previewCount}
+          providerLabel={providerLabel}
+          settings={settings}
+        />
         <ParameterCard
           isBusy={isBusy}
           isDashscopeProvider={isDashscopeProvider}
