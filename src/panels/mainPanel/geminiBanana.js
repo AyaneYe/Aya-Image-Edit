@@ -82,21 +82,44 @@ function buildGenerationConfig({ aspectRatio, imageSize }) {
   return config;
 }
 
-function buildBody({ prompt, inputImageBase64, inputImageMime, aspectRatio, imageSize }) {
-  const normalizedBase64 = normalizeBase64Payload(inputImageBase64);
-  const normalizedMime = normalizeMimeType(inputImageMime);
+function normalizeInputImages({ inputImageBase64, inputImageMime, inputImages }) {
+  if (Array.isArray(inputImages) && inputImages.length) {
+    return inputImages
+      .filter((item) => item?.base64)
+      .map((item) => ({
+        base64: normalizeBase64Payload(item.base64),
+        mime: normalizeMimeType(item.mime),
+      }));
+  }
+
+  if (!inputImageBase64) {
+    return [];
+  }
+
+  return [
+    {
+      base64: normalizeBase64Payload(inputImageBase64),
+      mime: normalizeMimeType(inputImageMime),
+    },
+  ];
+}
+
+function buildBody({ prompt, inputImageBase64, inputImageMime, inputImages, aspectRatio, imageSize }) {
+  const images = normalizeInputImages({ inputImageBase64, inputImageMime, inputImages });
   const parts = [];
 
   if (typeof prompt === "string" && prompt.trim()) {
     parts.push({ text: prompt.trim() });
   }
 
-  parts.push({
-    inline_data: {
-      mime_type: normalizedMime,
-      data: normalizedBase64,
-    },
-  });
+  for (const image of images) {
+    parts.push({
+      inline_data: {
+        mime_type: image.mime,
+        data: image.base64,
+      },
+    });
+  }
 
   return {
     contents: [
@@ -125,6 +148,7 @@ export async function geminiBananaGenerate({
   prompt,
   inputImageBase64,
   inputImageMime,
+  inputImages,
   aspectRatio,
   imageSize,
 }) {
@@ -137,6 +161,7 @@ export async function geminiBananaGenerate({
     prompt,
     inputImageBase64,
     inputImageMime,
+    inputImages,
     aspectRatio,
     imageSize,
   });

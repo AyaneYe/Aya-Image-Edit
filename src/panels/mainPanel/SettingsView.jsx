@@ -1,120 +1,164 @@
 import React from "react";
 
-import { GEMINI_MODEL_OPTIONS } from "./sharedSettings.js";
+import {
+  PROVIDER_DASHSCOPE,
+  PROVIDER_GEMINI,
+  PROVIDER_OPENAI,
+} from "./aiProvider.js";
+import { GEMINI_MODEL_OPTIONS, OPENAI_QUALITY_OPTIONS } from "./sharedSettings.js";
 
 import "./SettingsView.css";
 
-export const SettingsView = ({ activeProvider, isBusy, setSettings, settings }) => (
-  <div className="aya-settings-view">
-    <section className="aya-settings-card">
-      <div className="aya-settings-card__header">
-        <div className="aya-workbench-card__eyebrow">提供商</div>
-        <h2 className="aya-settings-card__title">模型与密钥</h2>
-      </div>
+const CARD_CLASS = "card border border-base-300 bg-base-200 shadow-sm";
+const CARD_BODY_CLASS = "card-body gap-4 p-4";
+const TITLE_CLASS = "card-title text-sm font-semibold";
+const FIELD_CLASS = "fieldset";
+const LABEL_CLASS = "fieldset-legend";
+const INPUT_CLASS = "input input-sm w-full";
+const SELECT_CLASS = "select select-sm w-full";
 
-      <div className="aya-settings-card__body">
-        <label className="aya-form-field">
-          <span className="aya-form-field__label">提供商</span>
-          <select
-            className="aya-field"
-            value={activeProvider}
-            onChange={(event) =>
-              setSettings((current) => ({
-                ...current,
-                provider: event.target.value,
-              }))
-            }
-            disabled={isBusy}
-          >
-            <option value="dashscope">DashScope</option>
-            <option value="gemini">Gemini</option>
-          </select>
-        </label>
+export const SettingsView = ({ activeProvider, isBusy, setSettings, settings }) => {
+  const isGeminiProvider = activeProvider === PROVIDER_GEMINI;
+  const isOpenAIProvider = activeProvider === PROVIDER_OPENAI;
+  const apiKeyLabel = isGeminiProvider
+    ? "Gemini 密钥"
+    : isOpenAIProvider
+      ? "OpenAI 密钥"
+      : "DashScope 密钥";
+  const apiKeyValue = isGeminiProvider
+    ? settings.geminiApiKey
+    : isOpenAIProvider
+      ? settings.openaiApiKey
+      : settings.apiKey;
 
-        <label className="aya-form-field">
-          <span className="aya-form-field__label">
-            {activeProvider === "gemini" ? "Gemini 密钥" : "DashScope 密钥"}
-          </span>
-          <input
-            className="aya-field"
-            type="password"
-            value={activeProvider === "gemini" ? settings.geminiApiKey : settings.apiKey}
-            onChange={(event) => {
-              const value = event.target.value;
-              setSettings((current) =>
-                activeProvider === "gemini"
-                  ? { ...current, geminiApiKey: value }
-                  : { ...current, apiKey: value }
-              );
-            }}
-            disabled={isBusy}
-          />
-        </label>
+  return (
+    <div className="aya-settings-view">
+      <section className={CARD_CLASS}>
+        <div className={CARD_BODY_CLASS}>
+          <h2 className={TITLE_CLASS}>模型与密钥</h2>
 
-        <label className="aya-form-field">
-          <span className="aya-form-field__label">模型</span>
-          {activeProvider === "gemini" ? (
+          <label className={FIELD_CLASS}>
+            <span className={LABEL_CLASS}>提供商</span>
             <select
-              className="aya-field"
-              value={settings.geminiModel}
+              className={SELECT_CLASS}
+              value={activeProvider}
               onChange={(event) =>
                 setSettings((current) => ({
                   ...current,
-                  geminiModel: event.target.value,
+                  provider: event.target.value,
                 }))
               }
               disabled={isBusy}
             >
-              {GEMINI_MODEL_OPTIONS.map((modelName) => (
-                <option key={modelName} value={modelName}>
-                  {modelName}
-                </option>
-              ))}
+              <option value={PROVIDER_DASHSCOPE}>DashScope</option>
+              <option value={PROVIDER_GEMINI}>Gemini</option>
+              <option value={PROVIDER_OPENAI}>OpenAI</option>
             </select>
-          ) : (
+          </label>
+
+          <label className={FIELD_CLASS}>
+            <span className={LABEL_CLASS}>{apiKeyLabel}</span>
             <input
-              className="aya-field"
-              type="text"
-              value={settings.model}
-              onChange={(event) =>
-                setSettings((current) => ({
-                  ...current,
-                  model: event.target.value,
-                }))
-              }
+              className={INPUT_CLASS}
+              type="password"
+              value={apiKeyValue}
+              onChange={(event) => {
+                const value = event.target.value;
+                setSettings((current) => {
+                  if (isGeminiProvider) {
+                    return { ...current, geminiApiKey: value };
+                  }
+                  if (isOpenAIProvider) {
+                    return { ...current, openaiApiKey: value };
+                  }
+                  return { ...current, apiKey: value };
+                });
+              }}
               disabled={isBusy}
             />
-          )}
-        </label>
-      </div>
-    </section>
+          </label>
 
-    <section className="aya-settings-card">
-      <div className="aya-settings-card__header">
-        <div className="aya-workbench-card__eyebrow">行为</div>
-        <h2 className="aya-settings-card__title">放置默认值</h2>
-      </div>
+          {isOpenAIProvider ? (
+            <label className={FIELD_CLASS}>
+              <span className={LABEL_CLASS}>API URL</span>
+              <input
+                className={INPUT_CLASS}
+                type="url"
+                value={settings.openaiBaseUrl}
+                onChange={(event) =>
+                  setSettings((current) => ({
+                    ...current,
+                    openaiBaseUrl: event.target.value,
+                  }))
+                }
+                disabled={isBusy}
+                placeholder="https://api.openai.com/v1/images/edits"
+              />
+            </label>
+          ) : null}
 
-      <div className="aya-settings-card__body">
-        <label className="aya-form-field">
-          <span className="aya-form-field__label">生成后自动回填</span>
-          <select
-            className="aya-field"
-            value={settings.autoSendMode || "off"}
-            onChange={(event) =>
-              setSettings((current) => ({
-                ...current,
-                autoSendMode: event.target.value,
-              }))
-            }
-            disabled={isBusy}
-          >
-            <option value="off">关闭</option>
-            <option value="original">原始位置</option>
-            <option value="selection">当前选区</option>
-          </select>
-        </label>
-      </div>
-    </section>
-  </div>
-);
+          <label className={FIELD_CLASS}>
+            <span className={LABEL_CLASS}>模型</span>
+            {isGeminiProvider ? (
+              <select
+                className={SELECT_CLASS}
+                value={settings.geminiModel}
+                onChange={(event) =>
+                  setSettings((current) => ({
+                    ...current,
+                    geminiModel: event.target.value,
+                  }))
+                }
+                disabled={isBusy}
+              >
+                {GEMINI_MODEL_OPTIONS.map((modelName) => (
+                  <option key={modelName} value={modelName}>
+                    {modelName}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                className={INPUT_CLASS}
+                type="text"
+                value={isOpenAIProvider ? settings.openaiModel : settings.model}
+                onChange={(event) => {
+                  const value = event.target.value;
+                  setSettings((current) =>
+                    isOpenAIProvider
+                      ? { ...current, openaiModel: value }
+                      : { ...current, model: value }
+                  );
+                }}
+                disabled={isBusy}
+              />
+            )}
+          </label>
+
+          {isOpenAIProvider ? (
+            <label className={FIELD_CLASS}>
+              <span className={LABEL_CLASS}>质量</span>
+              <select
+                className={SELECT_CLASS}
+                value={settings.openaiQuality}
+                onChange={(event) =>
+                  setSettings((current) => ({
+                    ...current,
+                    openaiQuality: event.target.value,
+                  }))
+                }
+                disabled={isBusy}
+              >
+                {OPENAI_QUALITY_OPTIONS.map((quality) => (
+                  <option key={quality} value={quality}>
+                    {quality}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+        </div>
+      </section>
+    </div>
+  );
+};

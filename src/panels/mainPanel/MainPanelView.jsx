@@ -20,12 +20,14 @@ class PanelErrorBoundary extends React.Component {
   render() {
     if (this.state.error) {
       return (
-        <div className="aya-root-error">
-          <div className="aya-root-error__card">
-            <div className="aya-root-error__title">面板渲染出错。</div>
-            <pre className="aya-root-error__detail">
-              {this.state.error?.message || String(this.state.error)}
-            </pre>
+        <div className="flex min-h-full items-center justify-center p-5" data-theme="dark">
+          <div className="card w-full max-w-xl border border-error bg-base-200 shadow-sm">
+            <div className="card-body gap-4">
+              <div className="alert alert-error">面板渲染出错。</div>
+              <pre className="m-0 whitespace-pre-wrap break-words text-xs leading-relaxed text-base-content/80">
+                {this.state.error?.message || String(this.state.error)}
+              </pre>
+            </div>
           </div>
         </div>
       );

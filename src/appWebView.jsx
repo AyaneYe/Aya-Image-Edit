@@ -21,14 +21,18 @@ function renderFatal(title, detail, retryable = false) {
   }
 
   target.innerHTML = `
-    <div style="padding:16px;color:#fff;background:#111826;font:12px/1.6 Segoe UI,sans-serif;height:100%;box-sizing:border-box;">
-      <div style="font-size:16px;font-weight:600;margin-bottom:8px;color:#ffb365;">${escapeHtml(title)}</div>
-      <pre style="white-space:pre-wrap;word-break:break-word;margin:0;color:#d8e2f0;">${escapeHtml(detail)}</pre>
+    <div data-theme="dark" class="flex min-h-full items-center justify-center bg-base-100 p-4">
+      <div class="card w-full max-w-xl border border-error bg-base-200 shadow-sm">
+        <div class="card-body gap-4">
+          <div class="alert alert-error">${escapeHtml(title)}</div>
+          <pre class="m-0 whitespace-pre-wrap break-words text-xs leading-relaxed text-base-content/80">${escapeHtml(detail)}</pre>
       ${
         retryable
-          ? '<button id="aya-retry" style="margin-top:14px;border:0;border-radius:999px;padding:9px 14px;background:#67c6ff;color:#08121d;cursor:pointer;font-weight:600;">重试</button>'
+          ? '<button id="aya-retry" class="btn btn-primary btn-sm self-start">重试</button>'
           : ""
       }
+        </div>
+      </div>
     </div>
   `;
 
@@ -70,29 +74,15 @@ class ErrorBoundary extends React.Component {
   render() {
     if (this.state.error) {
       return (
-        <div
-          style={{
-            padding: 16,
-            color: "#fff",
-            background: "#111826",
-            font: "12px/1.6 Segoe UI, sans-serif",
-            height: "100%",
-            boxSizing: "border-box",
-          }}
-        >
-          <div
-            style={{
-              fontSize: 16,
-              fontWeight: 600,
-              marginBottom: 8,
-              color: "#ffb365",
-            }}
-          >
-            界面渲染失败
+        <div className="flex min-h-full items-center justify-center bg-base-100 p-4" data-theme="dark">
+          <div className="card w-full max-w-xl border border-error bg-base-200 shadow-sm">
+            <div className="card-body gap-4">
+              <div className="alert alert-error">界面渲染失败</div>
+              <pre className="m-0 whitespace-pre-wrap break-words text-xs leading-relaxed text-base-content/80">
+                {this.state.error?.stack || this.state.error?.message || String(this.state.error)}
+              </pre>
+            </div>
           </div>
-          <pre style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", margin: 0 }}>
-            {this.state.error?.stack || this.state.error?.message || String(this.state.error)}
-          </pre>
         </div>
       );
     }

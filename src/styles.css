@@ -1,13 +1,55 @@
-:root {
+@import "tailwindcss";
+@config "../tailwind.config.js";
+
+/*
+ * Brand theme.
+ * The daisyUI JS-plugin form (see tailwind.config.js) can only select built-in
+ * theme names, so the branded palette is applied by overriding daisyUI's
+ * `--color-*` theme tokens here. These rules are unlayered, so they win over
+ * daisyUI's layered `[data-theme=dark]` defaults, and every daisyUI component
+ * (btn, badge, toggle, input, card, ...) reads the overridden values.
+ */
+:root,
+[data-theme="dark"] {
   color-scheme: dark;
+
+  /* Surfaces — warm neutral dark; base-100 is the lightest fill, base-300 the visible border. */
+  --color-base-100: oklch(26% 0.006 70);
+  --color-base-200: oklch(20.5% 0.006 70);
+  --color-base-300: oklch(33% 0.009 70);
+  --color-base-content: oklch(95% 0.011 77);
+
+  /* Primary — brand orange (#ff8a3d). */
+  --color-primary: oklch(75% 0.167 50.5);
+  --color-primary-content: oklch(23% 0.045 52);
+
+  /* Secondary — calm blue that complements the orange. */
+  --color-secondary: oklch(72% 0.105 232);
+  --color-secondary-content: oklch(21% 0.035 232);
+
+  /* Accent — warm amber. */
+  --color-accent: oklch(80% 0.13 75);
+  --color-accent-content: oklch(25% 0.05 75);
+
+  --color-neutral: oklch(30% 0.006 70);
+  --color-neutral-content: oklch(93% 0.005 70);
+
+  --color-info: oklch(72% 0.13 232);
+  --color-info-content: oklch(20% 0.04 232);
+  --color-success: oklch(73% 0.15 156);
+  --color-success-content: oklch(22% 0.05 156);
+  --color-warning: oklch(80% 0.16 75);
+  --color-warning-content: oklch(26% 0.06 75);
+  --color-error: oklch(68% 0.19 18);
+  --color-error-content: oklch(98% 0.01 18);
+
+  --radius-selector: 0.5rem;
+  --radius-field: 0.5rem;
+  --radius-box: 0.75rem;
+}
+
+:root {
   --aya-font-sans: "Aptos", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
-  --aya-bg: #101214;
-  --aya-border: rgba(255, 255, 255, 0.12);
-  --aya-text: #f4efe8;
-  --aya-accent: #ff8a3d;
-  --aya-danger: #ff6b5f;
-  --aya-shadow: 0 18px 38px rgba(0, 0, 0, 0.32);
-  --aya-radius-lg: 22px;
 }
 
 html,
@@ -21,8 +63,8 @@ body,
 body {
   overflow: hidden;
   font-family: var(--aya-font-sans);
-  background: var(--aya-bg);
-  color: var(--aya-text);
+  background: var(--color-base-200);
+  color: var(--color-base-content);
 }
 
 #root {
@@ -38,11 +80,6 @@ input,
 select,
 textarea {
   font: inherit;
-  color: inherit;
-}
-
-button {
-  border: 0;
 }
 
 img {
@@ -51,129 +88,5 @@ img {
 }
 
 ::selection {
-  background: rgba(255, 138, 61, 0.22);
-}
-
-.aya-button,
-.aya-field,
-.aya-textarea {
-  border-radius: 14px;
-  border: 1px solid transparent;
-  transition:
-    border-color 140ms ease,
-    background 140ms ease,
-    transform 140ms ease,
-    box-shadow 140ms ease;
-}
-
-.aya-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 40px;
-  padding: 0 14px;
-  background: linear-gradient(135deg, rgba(255, 138, 61, 0.94), rgba(255, 173, 102, 0.96));
-  color: #16181b;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  cursor: pointer;
-  box-shadow: 0 14px 24px rgba(255, 138, 61, 0.18);
-}
-
-.aya-button:hover:not(:disabled) {
-  transform: translateY(-1px);
-}
-
-.aya-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
-  box-shadow: none;
-}
-
-.aya-button--secondary {
-  background: rgba(255, 255, 255, 0.07);
-  border-color: rgba(255, 255, 255, 0.12);
-  color: var(--aya-text);
-  box-shadow: none;
-}
-
-.aya-button--ghost {
-  background: transparent;
-  border-color: rgba(255, 255, 255, 0.12);
-  color: rgba(244, 239, 232, 0.82);
-  box-shadow: none;
-}
-
-.aya-button--danger {
-  background: rgba(255, 107, 95, 0.14);
-  border-color: rgba(255, 107, 95, 0.24);
-  color: #ffd2c7;
-  box-shadow: none;
-}
-
-.aya-field,
-.aya-textarea {
-  width: 100%;
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.1);
-  color: var(--aya-text);
-}
-
-.aya-field {
-  min-height: 42px;
-  padding: 0 12px;
-}
-
-.aya-textarea {
-  min-height: 168px;
-  padding: 12px 14px;
-  resize: vertical;
-  line-height: 1.6;
-}
-
-.aya-field::placeholder,
-.aya-textarea::placeholder {
-  color: rgba(244, 239, 232, 0.38);
-}
-
-.aya-field:focus,
-.aya-textarea:focus,
-.aya-button:focus {
-  outline: none;
-  border-color: rgba(255, 138, 61, 0.44);
-  box-shadow: 0 0 0 3px rgba(255, 138, 61, 0.12);
-}
-
-.aya-root-error {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100%;
-  padding: 20px;
-}
-
-.aya-root-error__card {
-  width: min(560px, 100%);
-  padding: 22px;
-  border-radius: 22px;
-  border: 1px solid rgba(255, 107, 95, 0.2);
-  background: rgba(17, 19, 21, 0.96);
-  box-shadow: var(--aya-shadow);
-}
-
-.aya-root-error__title {
-  font-size: 15px;
-  font-weight: 700;
-  color: #ffd2c7;
-}
-
-.aya-root-error__detail {
-  margin: 12px 0 0;
-  white-space: pre-wrap;
-  word-break: break-word;
-  color: rgba(244, 239, 232, 0.76);
-  font-size: 12px;
-  line-height: 1.6;
+  background: color-mix(in oklab, var(--color-primary) 26%, transparent);
 }

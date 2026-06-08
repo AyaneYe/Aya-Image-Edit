@@ -228,6 +228,210 @@ async function encodeImageDataBase64({ imaging, imageData, format }) {
   throw lastError || new Error("encodeImageData 执行失败。");
 }
 
+function getOptionalSelectionBounds(documentRef) {
+  try {
+    return documentRef?.selection?.bounds || null;
+  } catch {
+    return null;
+  }
+}
+
+function getDocumentBounds(documentRef) {
+  const width = unitToNumber(documentRef?.width);
+  const height = unitToNumber(documentRef?.height);
+
+  if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+    throw new Error("无法读取当前画布尺寸。");
+  }
+
+  return {
+    left: 0,
+    top: 0,
+    right: width,
+    bottom: height,
+  };
+}
+
+async function encodeRgbaCaptureBase64({ core, imaging, captured, commandName }) {
+  return core.executeAsModal(
+    async () => {
+      if (typeof imaging.encodeImageData !== "function") {
+        throw new Error("当前 Photoshop 版本不支持 imaging.encodeImageData。");
+      }
+
+      const rgba = new Uint8Array(captured.rgbaBuffer);
+
+      let imageData = await imaging.createImageDataFromBuffer(rgba, {
+        width: captured.bounds.width,
+        height: captured.bounds.height,
+        components: 4,
+        chunky: true,
+        colorSpace: "RGB",
+        colorProfile: "sRGB IEC61966-2.1",
+      });
+
+      try {
+        const base64 = await encodeImageDataBase64({
+          imaging,
+          imageData,
+          format: "png",
+        });
+        return { mime: "image/png", base64 };
+      } catch (error) {
+        const message = error?.message || String(error);
+        if (!/alpha|jpeg|jpg/i.test(message)) {
+          throw error;
+        }
+      } finally {
+        imageData.dispose();
+      }
+
+      const rgb = rgbaToRgbOverWhite(rgba);
+      imageData = await imaging.createImageDataFromBuffer(rgb, {
+        width: captured.bounds.width,
+        height: captured.bounds.height,
+        components: 3,
+        chunky: true,
+        colorSpace: "RGB",
+        colorProfile: "sRGB IEC61966-2.1",
+      });
+
+      try {
+        const base64 = await encodeImageDataBase64({
+          imaging,
+          imageData,
+          format: "jpeg",
+        });
+        return { mime: "image/jpeg", base64 };
+      } finally {
+        imageData.dispose();
+      }
+    },
+    { commandName }
+  );
+}
+
+export async function documentImageToBase64Host(options = {}) {
+  const photoshop = require("photoshop");
+  const { app, core, imaging } = photoshop;
+
+  if (!imaging) {
+    throw new Error("当前 Photoshop 版本不支持 imaging API。");
+  }
+
+  const documentRef = app.activeDocument;
+  if (!documentRef) {
+    throw new Error("请先打开一个 Photoshop 文档。");
+  }
+
+  const source = options?.source === "layer" ? "layer" : "canvas";
+
+  const captured = await core.executeAsModal(
+    async () => {
+      const activeDocument = app.activeDocument;
+      const selectionBounds = getOptionalSelectionBounds(activeDocument);
+      const activeLayer = activeDocument?.activeLayers?.[0] || null;
+      if (source === "layer" && !activeLayer) {
+        throw new Error("请先选择一个可读取的图层。");
+      }
+      const layerBounds = source === "layer" ? getLayerBoundsPx(activeLayer) : null;
+      const rawBounds = selectionBounds || (source === "layer" ? layerBounds : getDocumentBounds(activeDocument));
+      const bounds = toIntBounds(rawBounds);
+      const pixelOptions = {
+        documentID: activeDocument.id,
+        sourceBounds: {
+          left: bounds.left,
+          top: bounds.top,
+          right: bounds.right,
+          bottom: bounds.bottom,
+        },
+        colorSpace: "RGB",
+        colorProfile: "sRGB IEC61966-2.1",
+        componentSize: 8,
+      };
+
+      if (source === "layer") {
+        if (!activeLayer?.id) {
+          throw new Error("请先选择一个可读取的图层。");
+        }
+        pixelOptions.layerID = activeLayer.id;
+      }
+
+      const pixelObject = await imaging.getPixels(pixelOptions);
+
+      let maskObject = null;
+      if (selectionBounds) {
+        try {
+          maskObject = await imaging.getSelection({
+            documentID: activeDocument.id,
+            sourceBounds: {
+              left: bounds.left,
+              top: bounds.top,
+              right: bounds.right,
+              bottom: bounds.bottom,
+            },
+          });
+        } catch {
+          maskObject = null;
+        }
+      }
+
+      const pixelData = await pixelObject.imageData.getData({ chunky: true });
+      const pixelComponents = pixelObject.imageData.components;
+      const maskData = maskObject ? await maskObject.imageData.getData({ chunky: true }) : null;
+
+      const rgba = new Uint8ClampedArray(bounds.width * bounds.height * 4);
+      for (let index = 0; index < bounds.width * bounds.height; index += 1) {
+        const maskValue = maskData ? maskData[index] ?? 0 : 255;
+        if (pixelComponents === 4) {
+          rgba[index * 4 + 0] = pixelData[index * 4 + 0];
+          rgba[index * 4 + 1] = pixelData[index * 4 + 1];
+          rgba[index * 4 + 2] = pixelData[index * 4 + 2];
+          rgba[index * 4 + 3] = Math.round((pixelData[index * 4 + 3] * maskValue) / 255);
+        } else {
+          rgba[index * 4 + 0] = pixelData[index * 3 + 0];
+          rgba[index * 4 + 1] = pixelData[index * 3 + 1];
+          rgba[index * 4 + 2] = pixelData[index * 3 + 2];
+          rgba[index * 4 + 3] = maskValue;
+        }
+      }
+
+      pixelObject.imageData.dispose();
+      if (maskObject) {
+        maskObject.imageData.dispose();
+      }
+
+      return {
+        docId: activeDocument.id,
+        source,
+        bounds: {
+          left: bounds.left,
+          top: bounds.top,
+          width: bounds.width,
+          height: bounds.height,
+        },
+        rgbaBuffer: rgba.buffer,
+      };
+    },
+    { commandName: source === "layer" ? "读取当前图层" : "读取当前画布" }
+  );
+
+  const encoded = await encodeRgbaCaptureBase64({
+    core,
+    imaging,
+    captured,
+    commandName: source === "layer" ? "编码当前图层" : "编码当前画布",
+  });
+
+  return {
+    docId: captured.docId,
+    bounds: captured.bounds,
+    source: captured.source,
+    mime: encoded.mime,
+    base64: encoded.base64,
+  };
+}
+
 export async function selectionToImageBase64Host() {
   const photoshop = require("photoshop");
   const { app, core, imaging } = photoshop;

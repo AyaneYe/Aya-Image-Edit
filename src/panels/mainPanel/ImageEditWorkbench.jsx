@@ -1,54 +1,76 @@
 import React from "react";
+import { ChevronDown, ImageOff, ImagePlus, Play, Plus, Settings2 } from "lucide-react";
 
 import { ResultWorkspace } from "./ResultWorkspace.jsx";
 
 import "./ImageEditWorkbench.css";
 
-const InputContextCard = ({
+const CARD_CLASS = "card border border-base-300 bg-base-200 shadow-sm";
+const CARD_BODY_CLASS = "card-body gap-4 p-4";
+const TITLE_CLASS = "card-title text-sm font-semibold";
+const FIELD_CLASS = "fieldset";
+const LABEL_CLASS = "fieldset-legend";
+const INPUT_CLASS = "input input-sm w-full";
+const SELECT_CLASS = "select select-sm w-full";
+const PANEL_ICON_SIZE = 16;
+
+const getAutoSendLabel = (mode) => {
+  if (mode === "selection") {
+    return "当前选区";
+  }
+
+  if (mode === "original") {
+    return "原始位置";
+  }
+
+  return "关闭";
+};
+
+const CollapseChevron = ({ collapsed }) => (
+  <ChevronDown
+    size={16}
+    strokeWidth={2}
+    className={"aya-panel-chevron" + (collapsed ? " aya-panel-chevron--collapsed" : "")}
+    aria-hidden="true"
+  />
+);
+
+const CardPanelHeader = ({ title, collapsed, onToggleCollapse, trailing }) => (
+  <button
+    type="button"
+    className="aya-card-header"
+    onClick={onToggleCollapse}
+    aria-expanded={!collapsed}
+  >
+    <span className={TITLE_CLASS}>{title}</span>
+    <span className="aya-card-header__right">
+      {trailing}
+      <CollapseChevron collapsed={collapsed} />
+    </span>
+  </button>
+);
+
+const ShortcutCard = ({
+  collapsed,
   isBusy,
+  onToggleCollapse,
   onRunAddNeutralGrayLayer,
   onRunRemoveBlemishRetouch,
   onRunSetSoftWhiteBrush,
-  previewCount,
-  providerLabel,
-  settings,
 }) => (
-  <section className="aya-workbench-card aya-workbench-card--accent">
-    <div className="aya-workbench-card__header">
-      <div>
-        <div className="aya-workbench-card__eyebrow">当前状态</div>
-        <h2 className="aya-workbench-card__title">工作区</h2>
-      </div>
-    </div>
+  <section className={CARD_CLASS}>
+    <div className={CARD_BODY_CLASS}>
+      <CardPanelHeader
+        title="快捷工具"
+        collapsed={collapsed}
+        onToggleCollapse={onToggleCollapse}
+      />
 
-    <div className="aya-workbench-card__body">
-      <div className="aya-context-grid">
-        <div className="aya-context-chip">
-          <span className="aya-context-chip__label">模型</span>
-          <span className="aya-context-chip__value">{providerLabel}</span>
-        </div>
-        <div className="aya-context-chip">
-          <span className="aya-context-chip__label">自动回填</span>
-          <span className="aya-context-chip__value">
-            {settings.autoSendMode === "selection"
-              ? "当前选区"
-              : settings.autoSendMode === "original"
-                ? "原始位置"
-                : "关闭"}
-          </span>
-        </div>
-        <div className="aya-context-chip">
-          <span className="aya-context-chip__label">结果数</span>
-          <span className="aya-context-chip__value">{previewCount}</span>
-        </div>
-      </div>
-
-      <div className="aya-retouch-shortcuts">
-        <div className="aya-retouch-shortcuts__label">快速修图</div>
+      {collapsed ? null : (
         <div className="aya-retouch-shortcuts__actions">
           <button
             type="button"
-            className="aya-button aya-button--ghost aya-retouch-shortcuts__button"
+            className="btn btn-outline btn-sm normal-case aya-shortcut-button"
             onClick={onRunRemoveBlemishRetouch}
             disabled={isBusy}
           >
@@ -56,7 +78,7 @@ const InputContextCard = ({
           </button>
           <button
             type="button"
-            className="aya-button aya-button--ghost aya-retouch-shortcuts__button"
+            className="btn btn-outline btn-sm normal-case aya-shortcut-button"
             onClick={onRunAddNeutralGrayLayer}
             disabled={isBusy}
           >
@@ -64,215 +86,547 @@ const InputContextCard = ({
           </button>
           <button
             type="button"
-            className="aya-button aya-button--ghost aya-retouch-shortcuts__button"
+            className="btn btn-outline btn-sm normal-case aya-shortcut-button"
             onClick={onRunSetSoftWhiteBrush}
             disabled={isBusy}
           >
             瑕疵笔刷
           </button>
         </div>
-      </div>
-    </div>
-  </section>
-);
-
-const ParameterCard = ({
-  isBusy,
-  isDashscopeProvider,
-  onOpenSettings,
-  prompt,
-  setPrompt,
-  setSettings,
-  settings,
-}) => (
-  <section className="aya-workbench-card">
-    <div className="aya-workbench-card__header">
-      <div>
-        <div className="aya-workbench-card__eyebrow">参数</div>
-        <h2 className="aya-workbench-card__title">编辑参数</h2>
-      </div>
-      <button
-        type="button"
-        className="aya-button aya-button--ghost"
-        onClick={onOpenSettings}
-        disabled={isBusy}
-      >
-        设置
-      </button>
-    </div>
-
-    <div className="aya-workbench-card__body">
-      <label className="aya-form-field">
-        <span className="aya-form-field__label">提示词</span>
-        <textarea
-          className="aya-textarea"
-          rows={7}
-          placeholder="描述要如何修改当前选区"
-          value={prompt}
-          onChange={(event) => setPrompt(event.target.value)}
-          disabled={isBusy}
-        />
-      </label>
-
-      {isDashscopeProvider ? (
-        <>
-          <div className="aya-field-grid">
-            <label className="aya-form-field">
-              <span className="aya-form-field__label">输出尺寸</span>
-              <input
-                className="aya-field"
-                type="text"
-                value={settings.size}
-                onChange={(event) =>
-                  setSettings((current) => ({ ...current, size: event.target.value }))
-                }
-                disabled={isBusy}
-                placeholder="1536*1024"
-              />
-            </label>
-            <label className="aya-form-field">
-              <span className="aya-form-field__label">反向提示词</span>
-              <input
-                className="aya-field"
-                type="text"
-                value={settings.negative_prompt}
-                onChange={(event) =>
-                  setSettings((current) => ({
-                    ...current,
-                    negative_prompt: event.target.value,
-                  }))
-                }
-                disabled={isBusy}
-              />
-            </label>
-          </div>
-
-          <div className="aya-inline-toggle-row">
-            <label className="aya-inline-toggle">
-              <input
-                type="checkbox"
-                checked={Boolean(settings.prompt_extend)}
-                onChange={(event) =>
-                  setSettings((current) => ({
-                    ...current,
-                    prompt_extend: event.target.checked,
-                  }))
-                }
-                disabled={isBusy}
-              />
-              <span>启用提示词扩写</span>
-            </label>
-
-            <label className="aya-inline-toggle">
-              <input
-                type="checkbox"
-                checked={Boolean(settings.watermark)}
-                onChange={(event) =>
-                  setSettings((current) => ({
-                    ...current,
-                    watermark: event.target.checked,
-                  }))
-                }
-                disabled={isBusy}
-              />
-              <span>添加水印</span>
-            </label>
-          </div>
-        </>
-      ) : (
-        <div className="aya-field-grid">
-          <label className="aya-form-field">
-            <span className="aya-form-field__label">宽高比</span>
-            <select
-              className="aya-field"
-              value={settings.geminiAspectRatio || ""}
-              onChange={(event) =>
-                setSettings((current) => ({
-                  ...current,
-                  geminiAspectRatio: event.target.value,
-                }))
-              }
-              disabled={isBusy}
-            >
-              <option value="">默认</option>
-              <option value="1:1">1:1</option>
-              <option value="2:3">2:3</option>
-              <option value="3:2">3:2</option>
-              <option value="3:4">3:4</option>
-              <option value="4:3">4:3</option>
-              <option value="4:5">4:5</option>
-              <option value="5:4">5:4</option>
-              <option value="9:16">9:16</option>
-              <option value="16:9">16:9</option>
-              <option value="21:9">21:9</option>
-            </select>
-          </label>
-          <label className="aya-form-field">
-            <span className="aya-form-field__label">图像尺寸</span>
-            <select
-              className="aya-field"
-              value={settings.geminiImageSize || ""}
-              onChange={(event) =>
-                setSettings((current) => ({
-                  ...current,
-                  geminiImageSize: event.target.value,
-                }))
-              }
-              disabled={isBusy}
-            >
-              <option value="">默认（1K）</option>
-              <option value="1K">1K</option>
-              <option value="2K">2K</option>
-              <option value="4K">4K</option>
-            </select>
-          </label>
-        </div>
       )}
     </div>
   </section>
 );
 
-const OperationCard = ({ error, isBusy, onGenerate, onOpenSettings, previewCount, status }) => {
-  const toneClass = error
-    ? " aya-operation-state--error"
-    : isBusy
-      ? " aya-operation-state--busy"
-      : " aya-operation-state--ready";
+const ToolPanelHeader = ({ icon: Icon, title, collapsed, onToggleCollapse }) => (
+  <button
+    type="button"
+    className="aya-tool-panel__header"
+    onClick={onToggleCollapse}
+    aria-expanded={!collapsed}
+  >
+    <span className="aya-tool-panel__title-wrap">
+      <span className="aya-tool-panel__icon">
+        <Icon size={PANEL_ICON_SIZE} strokeWidth={1.8} />
+      </span>
+      <span className="aya-tool-panel__title">{title}</span>
+    </span>
+    <CollapseChevron collapsed={collapsed} />
+  </button>
+);
 
-  const copy = error ? error : status ? status : "请选择选区并输入提示词。";
+const UploadCard = ({
+  autoRefreshInput,
+  collapsed,
+  generationMode,
+  isBusy,
+  onCaptureCanvasInputImage,
+  onCaptureLayerInputImage,
+  onClearReferenceImages,
+  onClearUploadedInputImage,
+  onRemoveReferenceImage,
+  onRefreshBoundInputImage,
+  onToggleAutoRefreshInput,
+  onToggleCollapse,
+  onUploadInputImage,
+  onUploadReferenceImages,
+  setGenerationMode,
+  uploadedInputImage,
+  uploadedReferenceImages,
+}) => {
+  const isTextMode = generationMode === "text";
+  const mainDisabled = isBusy || isTextMode;
+  const inputSource = uploadedInputImage?.source || "";
+  const isBoundInputSource = inputSource === "canvas" || inputSource === "layer";
+  const isAutoRefreshActive = autoRefreshInput && isBoundInputSource;
+  const sourceLabel =
+    inputSource === "canvas"
+      ? "画布"
+      : inputSource === "layer"
+        ? "图层"
+        : inputSource === "file"
+          ? "文件"
+          : "未绑定";
+  const syncLabel = isAutoRefreshActive
+    ? `${sourceLabel}自动`
+    : inputSource === "file"
+      ? "文件快照"
+      : isBoundInputSource
+        ? `${sourceLabel}手动`
+        : "未绑定";
+  const autoButtonTitle = isAutoRefreshActive
+    ? `自动获取已开启：${sourceLabel}`
+    : inputSource === "file"
+      ? "文件输入是固定快照，点击后改为当前画布并开启自动获取"
+      : "自动获取已关闭，点击后绑定当前画布并开启";
 
   return (
-    <section className="aya-workbench-card">
-      <div className="aya-workbench-card__header">
-        <div>
-          <div className="aya-workbench-card__eyebrow">状态</div>
-          <h2 className="aya-workbench-card__title">执行状态</h2>
-        </div>
-      </div>
+  <section className="aya-tool-panel aya-upload-panel">
+    <ToolPanelHeader
+      icon={ImagePlus}
+      title="图像上传 (Image Upload)"
+      collapsed={collapsed}
+      onToggleCollapse={onToggleCollapse}
+    />
 
-      <div className="aya-workbench-card__body">
-        <div className={"aya-operation-state" + toneClass}>
-          <div className="aya-operation-state__heading">
-            <span>{error ? "需处理" : isBusy ? "处理中" : "就绪"}</span>
-            <span>{previewCount} 张结果</span>
+    {collapsed ? null : (
+    <div className="aya-upload-panel__body">
+      <div
+        className="aya-upload-main-slot"
+        onMouseEnter={() => onRefreshBoundInputImage({ force: true })}
+      >
+        <div className="aya-upload-toolbar">
+          <div className="aya-upload-mode-toggle join">
+            <button
+              type="button"
+              className={
+                "aya-upload-mode-button join-item" +
+                (generationMode !== "text" ? " aya-upload-mode-button--active" : "")
+              }
+              aria-pressed={generationMode !== "text"}
+              onClick={() => setGenerationMode("image")}
+              disabled={isBusy}
+            >
+              图生图
+            </button>
+            <button
+              type="button"
+              className={
+                "aya-upload-mode-button join-item" +
+                (generationMode === "text" ? " aya-upload-mode-button--active" : "")
+              }
+              aria-pressed={generationMode === "text"}
+              onClick={() => setGenerationMode("text")}
+              disabled={isBusy}
+            >
+              文生图
+            </button>
           </div>
-          <div className="aya-operation-state__copy">{copy}</div>
+          <button
+            type="button"
+            className={
+              "aya-upload-auto-toggle" +
+              (isAutoRefreshActive
+                ? " aya-upload-auto-toggle--active"
+                : " aya-upload-auto-toggle--inactive")
+            }
+            aria-pressed={isAutoRefreshActive}
+            title={autoButtonTitle}
+            onClick={onToggleAutoRefreshInput}
+            disabled={mainDisabled}
+          >
+            {isAutoRefreshActive ? "自动获取:开" : "自动获取:关"}
+          </button>
         </div>
 
-        <div className="aya-action-row">
-          <button type="button" className="aya-button" onClick={onGenerate} disabled={isBusy}>
-            {isBusy ? "生成中..." : "开始生成"}
+        <label
+          className={
+            "aya-upload-dropzone aya-upload-dropzone--main" +
+            (isTextMode ? " aya-upload-dropzone--disabled" : "")
+          }
+        >
+          <span className="aya-upload-slot__label">图1</span>
+          {!isTextMode ? (
+            <span
+              className={
+                "aya-upload-sync-badge" +
+                (isAutoRefreshActive ? " aya-upload-sync-badge--active" : "")
+              }
+            >
+              {syncLabel}
+            </span>
+          ) : null}
+
+          {isTextMode ? (
+            <span className="aya-upload-dropzone__hint">
+              <ImageOff size={20} strokeWidth={1.8} />
+              文生图模式无需输入图
+            </span>
+          ) : uploadedInputImage ? (
+            <>
+              <img
+                className="aya-upload-dropzone__image"
+                src={uploadedInputImage.dataUrl}
+                alt={uploadedInputImage.name}
+              />
+              <button
+                type="button"
+                className="btn btn-error btn-xs aya-upload-dropzone__remove"
+                onClick={(event) => {
+                  event.preventDefault();
+                  onClearUploadedInputImage();
+                }}
+                disabled={isBusy}
+              >
+                移除
+              </button>
+            </>
+          ) : (
+            <span className="aya-upload-dropzone__empty">
+              <Plus size={18} strokeWidth={2.4} />
+              点击选择文件
+            </span>
+          )}
+
+          <input
+            id="aya-upload-input-file"
+            className="aya-upload-file-input"
+            type="file"
+            accept="image/*"
+            onChange={(event) => {
+              onUploadInputImage(event.target.files);
+              event.target.value = "";
+            }}
+            disabled={mainDisabled}
+          />
+        </label>
+
+        <div className="aya-upload-source-row join">
+          <button
+            type="button"
+            className={
+              "aya-upload-source-button join-item" +
+              (inputSource === "canvas" ? " aya-upload-source-button--active" : "")
+            }
+            onClick={onCaptureCanvasInputImage}
+            disabled={mainDisabled}
+          >
+            画布
           </button>
           <button
             type="button"
-            className="aya-button aya-button--secondary"
-            onClick={onOpenSettings}
-            disabled={isBusy}
+            className={
+              "aya-upload-source-button join-item" +
+              (inputSource === "layer" ? " aya-upload-source-button--active" : "")
+            }
+            onClick={onCaptureLayerInputImage}
+            disabled={mainDisabled}
           >
-            设置
+            图层
           </button>
+          <label
+            className={
+              "aya-upload-source-button join-item" +
+              (inputSource === "file" ? " aya-upload-source-button--active" : "") +
+              (mainDisabled ? " aya-upload-source-button--disabled" : "")
+            }
+            htmlFor="aya-upload-input-file"
+          >
+            文件
+          </label>
         </div>
       </div>
+
+      <div className="aya-upload-reference-slot">
+        <div className="aya-upload-slot__label aya-upload-slot__label--right">参考图</div>
+        <div className="aya-reference-scroll">
+          <label className="aya-upload-dropzone aya-upload-dropzone--reference">
+            <Plus size={26} strokeWidth={2.6} />
+            <input
+              className="aya-upload-file-input"
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={(event) => {
+                onUploadReferenceImages(event.target.files);
+                event.target.value = "";
+              }}
+              disabled={isBusy}
+            />
+          </label>
+
+          {uploadedReferenceImages.map((image) => (
+            <div key={image.id} className="aya-reference-thumb">
+              <img className="aya-reference-thumb__image" src={image.dataUrl} alt={image.name} />
+              <button
+                type="button"
+                className="btn btn-circle btn-error btn-xs aya-reference-thumb__remove"
+                onClick={() => onRemoveReferenceImage(image.id)}
+                disabled={isBusy}
+                aria-label={`移除 ${image.name}`}
+              >
+                x
+              </button>
+            </div>
+          ))}
+        </div>
+
+        {uploadedReferenceImages.length ? (
+          <button
+            type="button"
+            className="btn btn-ghost btn-xs aya-upload-clear-refs"
+            onClick={onClearReferenceImages}
+            disabled={isBusy}
+          >
+            清空
+          </button>
+        ) : null}
+      </div>
+    </div>
+    )}
+  </section>
+  );
+};
+
+const ParameterCard = ({
+  collapsed,
+  isBusy,
+  isDashscopeProvider,
+  isGeminiProvider,
+  onToggleCollapse,
+  prompt,
+  setPrompt,
+  setSettings,
+  settings,
+}) => {
+  const autoSendMode = settings.autoSendMode || "off";
+
+  return (
+    <section className={CARD_CLASS}>
+      <div className={CARD_BODY_CLASS}>
+        <CardPanelHeader
+          title="编辑参数"
+          collapsed={collapsed}
+          onToggleCollapse={onToggleCollapse}
+        />
+
+        {collapsed ? null : (
+        <>
+        <label className={FIELD_CLASS}>
+          <span className={LABEL_CLASS}>提示词</span>
+          <textarea
+            className="textarea w-full"
+            rows={7}
+            placeholder="描述要如何修改当前选区"
+            value={prompt}
+            onChange={(event) => setPrompt(event.target.value)}
+            disabled={isBusy}
+          />
+        </label>
+
+        <label className="aya-toggle-line">
+          <input
+            className="toggle toggle-primary toggle-sm"
+            type="checkbox"
+            checked={autoSendMode !== "off"}
+            onChange={(event) =>
+              setSettings((current) => ({
+                ...current,
+                autoSendMode: event.target.checked
+                  ? current.autoSendMode === "original"
+                    ? "original"
+                    : "selection"
+                  : "off",
+              }))
+            }
+            disabled={isBusy}
+          />
+          <span className="text-sm font-medium">自动回填</span>
+          <span className="text-xs text-base-content/50">{getAutoSendLabel(autoSendMode)}</span>
+        </label>
+
+        {isDashscopeProvider ? (
+          <>
+            <div className="aya-field-grid">
+              <label className={FIELD_CLASS}>
+                <span className={LABEL_CLASS}>输出尺寸</span>
+                <input
+                  className={INPUT_CLASS}
+                  type="text"
+                  value={settings.size}
+                  onChange={(event) =>
+                    setSettings((current) => ({ ...current, size: event.target.value }))
+                  }
+                  disabled={isBusy}
+                  placeholder="1536*1024"
+                />
+              </label>
+              <label className={FIELD_CLASS}>
+                <span className={LABEL_CLASS}>反向提示词</span>
+                <input
+                  className={INPUT_CLASS}
+                  type="text"
+                  value={settings.negative_prompt}
+                  onChange={(event) =>
+                    setSettings((current) => ({
+                      ...current,
+                      negative_prompt: event.target.value,
+                    }))
+                  }
+                  disabled={isBusy}
+                />
+              </label>
+            </div>
+
+            <div className="aya-inline-toggle-row">
+              <label className="aya-toggle-line">
+                <input
+                  className="toggle toggle-primary toggle-sm"
+                  type="checkbox"
+                  checked={Boolean(settings.prompt_extend)}
+                  onChange={(event) =>
+                    setSettings((current) => ({
+                      ...current,
+                      prompt_extend: event.target.checked,
+                    }))
+                  }
+                  disabled={isBusy}
+                />
+                <span className="text-sm">启用提示词扩写</span>
+              </label>
+
+              <label className="aya-toggle-line">
+                <input
+                  className="toggle toggle-primary toggle-sm"
+                  type="checkbox"
+                  checked={Boolean(settings.watermark)}
+                  onChange={(event) =>
+                    setSettings((current) => ({
+                      ...current,
+                      watermark: event.target.checked,
+                    }))
+                  }
+                  disabled={isBusy}
+                />
+                <span className="text-sm">添加水印</span>
+              </label>
+            </div>
+          </>
+        ) : isGeminiProvider ? (
+          <div className="aya-field-grid">
+            <label className={FIELD_CLASS}>
+              <span className={LABEL_CLASS}>宽高比</span>
+              <select
+                className={SELECT_CLASS}
+                value={settings.geminiAspectRatio || ""}
+                onChange={(event) =>
+                  setSettings((current) => ({
+                    ...current,
+                    geminiAspectRatio: event.target.value,
+                  }))
+                }
+                disabled={isBusy}
+              >
+                <option value="">默认</option>
+                <option value="1:1">1:1</option>
+                <option value="2:3">2:3</option>
+                <option value="3:2">3:2</option>
+                <option value="3:4">3:4</option>
+                <option value="4:3">4:3</option>
+                <option value="4:5">4:5</option>
+                <option value="5:4">5:4</option>
+                <option value="9:16">9:16</option>
+                <option value="16:9">16:9</option>
+                <option value="21:9">21:9</option>
+              </select>
+            </label>
+            <label className={FIELD_CLASS}>
+              <span className={LABEL_CLASS}>图像尺寸</span>
+              <select
+                className={SELECT_CLASS}
+                value={settings.geminiImageSize || ""}
+                onChange={(event) =>
+                  setSettings((current) => ({
+                    ...current,
+                    geminiImageSize: event.target.value,
+                  }))
+                }
+                disabled={isBusy}
+              >
+                <option value="">默认（1K）</option>
+                <option value="1K">1K</option>
+                <option value="2K">2K</option>
+                <option value="4K">4K</option>
+              </select>
+            </label>
+          </div>
+        ) : null}
+        </>
+        )}
+      </div>
+    </section>
+  );
+};
+
+const OperationCard = ({
+  collapsed,
+  error,
+  generationMode,
+  isBusy,
+  onGenerate,
+  onToggleCollapse,
+  previewCount,
+  providerLabel,
+  settings,
+  status,
+  uploadedInputImage,
+  uploadedReferenceImages,
+}) => {
+  const imageCount =
+    generationMode === "text"
+      ? uploadedReferenceImages.length
+      : (uploadedInputImage ? 1 : 1) + uploadedReferenceImages.length;
+  const sizeContext =
+    settings.size ||
+    settings.geminiImageSize ||
+    settings.openaiQuality ||
+    "auto";
+  const modelContext =
+    settings.provider === "openai"
+      ? settings.openaiModel
+      : settings.provider === "gemini"
+        ? settings.geminiModel
+        : settings.model;
+  const operationLine = error
+    ? "任务需要处理..."
+    : isBusy
+      ? "任务执行中..."
+      : status || "等待任务指令...";
+  const contextLine = `信息：${providerLabel} | ${sizeContext || "auto"} | ${modelContext || "auto"} | ${imageCount}张`;
+
+  return (
+    <section className="aya-tool-panel aya-operation-panel">
+      <ToolPanelHeader
+        icon={Settings2}
+        title="操作台 (Operation)"
+        collapsed={collapsed}
+        onToggleCollapse={onToggleCollapse}
+      />
+
+      {collapsed ? null : (
+      <div className="aya-operation-panel__body">
+        <div
+          className={
+            "aya-operation-readout" +
+            (error
+              ? " aya-operation-readout--error"
+              : isBusy
+                ? " aya-operation-readout--busy"
+                : "")
+          }
+        >
+          <div className="aya-operation-readout__primary">{operationLine}</div>
+          <div className="aya-operation-readout__secondary">
+            {error || contextLine}
+          </div>
+        </div>
+        <button
+          type="button"
+          className="aya-operation-run-button"
+          onClick={onGenerate}
+          disabled={isBusy}
+          aria-label="开始生成"
+        >
+          {isBusy ? (
+            <span className="loading loading-spinner loading-md" />
+          ) : (
+            <span className="aya-operation-run-button__ring">
+              <Play size={27} fill="currentColor" strokeWidth={1.8} />
+            </span>
+          )}
+        </button>
+      </div>
+      )}
     </section>
   );
 };
@@ -280,13 +634,24 @@ const OperationCard = ({ error, isBusy, onGenerate, onOpenSettings, previewCount
 export const ImageEditWorkbench = (props) => {
   const {
     error,
+    autoRefreshInput,
     isBusy,
     isDashscopeProvider,
+    isGeminiProvider,
+    generationMode,
+    onCaptureCanvasInputImage,
+    onCaptureLayerInputImage,
+    onClearReferenceImages,
+    onClearUploadedInputImage,
     onGenerate,
-    onOpenSettings,
+    onRemoveReferenceImage,
+    onRefreshBoundInputImage,
+    onToggleAutoRefreshInput,
     onRunAddNeutralGrayLayer,
     onRunRemoveBlemishRetouch,
     onRunSetSoftWhiteBrush,
+    onUploadInputImage,
+    onUploadReferenceImages,
     previewCount,
     prompt,
     providerLabel,
@@ -294,40 +659,79 @@ export const ImageEditWorkbench = (props) => {
     setSettings,
     settings,
     status,
+    uploadedInputImage,
+    uploadedReferenceImages,
+    setGenerationMode,
   } = props;
+
+  const [collapsed, setCollapsed] = React.useState({});
+  const toggleCollapse = (key) =>
+    setCollapsed((current) => ({ ...current, [key]: !current[key] }));
 
   return (
     <div className="aya-workbench">
-      <div className="aya-workbench__rail">
-        <InputContextCard
+      <ResultWorkspace
+        {...props}
+        collapsed={Boolean(collapsed.result)}
+        onToggleCollapse={() => toggleCollapse("result")}
+      />
+
+      <OperationCard
+        collapsed={Boolean(collapsed.operation)}
+        error={error}
+        generationMode={generationMode}
+        isBusy={isBusy}
+        onGenerate={onGenerate}
+        onToggleCollapse={() => toggleCollapse("operation")}
+        previewCount={previewCount}
+        providerLabel={providerLabel}
+        settings={settings}
+        status={status}
+        uploadedInputImage={uploadedInputImage}
+        uploadedReferenceImages={uploadedReferenceImages}
+      />
+
+      <UploadCard
+        autoRefreshInput={autoRefreshInput}
+        collapsed={Boolean(collapsed.upload)}
+        generationMode={generationMode}
+        isBusy={isBusy}
+        onCaptureCanvasInputImage={onCaptureCanvasInputImage}
+        onCaptureLayerInputImage={onCaptureLayerInputImage}
+        onClearReferenceImages={onClearReferenceImages}
+        onClearUploadedInputImage={onClearUploadedInputImage}
+        onRemoveReferenceImage={onRemoveReferenceImage}
+        onRefreshBoundInputImage={onRefreshBoundInputImage}
+        onToggleAutoRefreshInput={onToggleAutoRefreshInput}
+        onToggleCollapse={() => toggleCollapse("upload")}
+        onUploadInputImage={onUploadInputImage}
+        onUploadReferenceImages={onUploadReferenceImages}
+        setGenerationMode={setGenerationMode}
+        uploadedInputImage={uploadedInputImage}
+        uploadedReferenceImages={uploadedReferenceImages}
+      />
+
+      <div className="aya-workbench__controls">
+        <ShortcutCard
+          collapsed={Boolean(collapsed.shortcut)}
           isBusy={isBusy}
+          onToggleCollapse={() => toggleCollapse("shortcut")}
           onRunAddNeutralGrayLayer={onRunAddNeutralGrayLayer}
           onRunRemoveBlemishRetouch={onRunRemoveBlemishRetouch}
           onRunSetSoftWhiteBrush={onRunSetSoftWhiteBrush}
-          previewCount={previewCount}
-          providerLabel={providerLabel}
-          settings={settings}
         />
         <ParameterCard
+          collapsed={Boolean(collapsed.parameter)}
           isBusy={isBusy}
           isDashscopeProvider={isDashscopeProvider}
-          onOpenSettings={onOpenSettings}
+          isGeminiProvider={isGeminiProvider}
+          onToggleCollapse={() => toggleCollapse("parameter")}
           prompt={prompt}
           setPrompt={setPrompt}
           setSettings={setSettings}
           settings={settings}
         />
-        <OperationCard
-          error={error}
-          isBusy={isBusy}
-          onGenerate={onGenerate}
-          onOpenSettings={onOpenSettings}
-          previewCount={previewCount}
-          status={status}
-        />
       </div>
-
-      <ResultWorkspace {...props} />
     </div>
   );
 };

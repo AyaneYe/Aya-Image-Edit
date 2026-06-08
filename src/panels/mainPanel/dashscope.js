@@ -17,14 +17,38 @@ export function parseDashscopeImages(json) {
   return urls;
 }
 
+function normalizeInputImages({ inputImageBase64, inputImageMime, inputImages }) {
+  if (Array.isArray(inputImages) && inputImages.length) {
+    return inputImages
+      .filter((item) => item?.base64)
+      .map((item) => ({
+        base64: item.base64,
+        mime: item.mime || "image/png",
+      }));
+  }
+
+  if (!inputImageBase64) {
+    return [];
+  }
+
+  return [
+    {
+      base64: inputImageBase64,
+      mime: inputImageMime || "image/png",
+    },
+  ];
+}
+
 export async function dashscopeGenerate({
   apiKey,
   model,
   prompt,
   inputImageBase64,
   inputImageMime,
+  inputImages,
   parameters,
 }) {
+  const images = normalizeInputImages({ inputImageBase64, inputImageMime, inputImages });
   const body = {
     model,
     input: {
@@ -32,9 +56,9 @@ export async function dashscopeGenerate({
         {
           role: "user",
           content: [
-            {
-              image: `data:${inputImageMime};base64,${inputImageBase64}`,
-            },
+            ...images.map((image) => ({
+              image: `data:${image.mime};base64,${image.base64}`,
+            })),
             {
               text: prompt,
             },

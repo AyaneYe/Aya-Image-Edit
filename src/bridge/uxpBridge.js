@@ -1,5 +1,6 @@
 let nextRequestId = 0;
 const pendingRequests = new Map();
+const hostEventHandlers = new Map();
 
 function formatBridgeErrorMessage(errorPayload) {
   if (!errorPayload || typeof errorPayload !== "object") {
@@ -47,11 +48,54 @@ export function invoke(method, ...args) {
   });
 }
 
+export function subscribeHostEvent(eventName, handler) {
+  if (typeof eventName !== "string" || !eventName || typeof handler !== "function") {
+    return () => {};
+  }
+
+  const handlers = hostEventHandlers.get(eventName) || new Set();
+  handlers.add(handler);
+  hostEventHandlers.set(eventName, handlers);
+
+  return () => {
+    handlers.delete(handler);
+    if (!handlers.size) {
+      hostEventHandlers.delete(eventName);
+    }
+  };
+}
+
+function dispatchHostEvent(eventName, payload) {
+  const handlers = hostEventHandlers.get(eventName);
+  if (!handlers) {
+    return;
+  }
+
+  for (const handler of Array.from(handlers)) {
+    try {
+      handler(payload);
+    } catch (error) {
+      console.warn("[Bridge] host event handler failed", error);
+    }
+  }
+}
+
 if (typeof window !== "undefined") {
   window.addEventListener("message", (event) => {
     const payload = event?.data;
 
-    if (!payload || typeof payload !== "object" || !("id" in payload)) {
+    if (!payload || typeof payload !== "object") {
+      return;
+    }
+
+    if (!("id" in payload)) {
+      if (
+        payload.bridge === "aya-image-edit" &&
+        payload.type === "event" &&
+        typeof payload.event === "string"
+      ) {
+        dispatchHostEvent(payload.event, payload.payload);
+      }
       return;
     }
 
