@@ -24,6 +24,29 @@ export async function hostFetch(url, options = {}) {
   };
 }
 
+
+// Like hostFetch but routes through network.fetchResponses on the host side,
+// which forces stream:true and parses SSE so UXP's idle-timeout never fires.
+export async function hostFetchResponses(url, options = {}) {
+  if (isInWebView()) {
+    return invokeHost("network.fetchResponses", url, options);
+  }
+
+  // Dev-mode fallback: plain fetch (CORS may block cross-origin requests)
+  const response = await fetch(url, {
+    method: options.method || "POST",
+    headers: options.headers || {},
+    body: options.body,
+  });
+  return {
+    ok: response.ok,
+    status: response.status,
+    statusText: response.statusText || "",
+    body: await response.text(),
+    contentType: response.headers?.get?.("content-type") || "",
+  };
+}
+
 export async function hostFetchJson(url, options = {}) {
   const response = await hostFetch(url, options);
   let json = {};

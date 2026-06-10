@@ -5,7 +5,7 @@ import {
   PROVIDER_GEMINI,
   PROVIDER_OPENAI,
 } from "./aiProvider.js";
-import { GEMINI_MODEL_OPTIONS, OPENAI_QUALITY_OPTIONS } from "./sharedSettings.js";
+import { GEMINI_MODEL_OPTIONS } from "./sharedSettings.js";
 
 import "./SettingsView.css";
 
@@ -135,28 +135,6 @@ export const SettingsView = ({ activeProvider, isBusy, setSettings, settings }) 
             )}
           </label>
 
-          {isOpenAIProvider ? (
-            <label className={FIELD_CLASS}>
-              <span className={LABEL_CLASS}>质量</span>
-              <select
-                className={SELECT_CLASS}
-                value={settings.openaiQuality}
-                onChange={(event) =>
-                  setSettings((current) => ({
-                    ...current,
-                    openaiQuality: event.target.value,
-                  }))
-                }
-                disabled={isBusy}
-              >
-                {OPENAI_QUALITY_OPTIONS.map((quality) => (
-                  <option key={quality} value={quality}>
-                    {quality}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : null}
         </div>
       </section>
     </div>

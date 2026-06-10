@@ -354,6 +354,84 @@ async function fetchMultipartThroughHost(url, options = {}) {
   }
 }
 
+function parseSseEvents(text) {
+  const events = [];
+  const blocks = String(text || "").split(/\n\n|\r\n\r\n/);
+  for (const block of blocks) {
+    const dataLines = [];
+    for (const line of block.split(/\r?\n/)) {
+      if (line.startsWith("data:")) {
+        dataLines.push(line.slice(5).trimStart());
+      }
+    }
+    const payload = dataLines.join("");
+    if (!payload || payload === "[DONE]") continue;
+    try {
+      events.push(JSON.parse(payload));
+    } catch { /* skip malformed */ }
+  }
+  return events;
+}
+
+function reconstructResponseFromSse(events) {
+  for (const evt of events) {
+    if (evt?.type === "response.completed" && evt?.response) {
+      return evt.response;
+    }
+  }
+  const items = events
+    .filter((evt) => evt?.type === "response.output_item.done" && evt?.item)
+    .map((evt) => evt.item);
+  return items.length ? { output: items } : null;
+}
+
+// Sends the request with stream:true so the server sends SSE events throughout
+// image generation — this keeps the HTTP connection active and prevents UXP's
+// internal idle-timeout from firing during long generations.
+async function fetchResponsesThroughHost(url, options = {}) {
+  const { method = "POST", headers = {}, body } = options || {};
+
+  let requestBody = body;
+  try {
+    const parsed = JSON.parse(body || "{}");
+    requestBody = JSON.stringify({ ...parsed, stream: true });
+  } catch { /* use body as-is */ }
+
+  const response = await fetch(url, { method, headers, body: requestBody });
+  const responseText = await response.text();
+
+  if (!response.ok) {
+    return {
+      ok: false,
+      status: response.status,
+      statusText: response.statusText || "",
+      body: responseText,
+      contentType: response.headers?.get?.("content-type") || "",
+    };
+  }
+
+  const contentType = response.headers?.get?.("content-type") || "";
+  if (contentType.includes("text/event-stream") || responseText.trimStart().startsWith("data:")) {
+    const events = parseSseEvents(responseText);
+    const reconstructed = reconstructResponseFromSse(events);
+    return {
+      ok: true,
+      status: response.status,
+      statusText: "",
+      body: reconstructed ? JSON.stringify(reconstructed) : responseText,
+      contentType: "application/json",
+    };
+  }
+
+  return {
+    ok: true,
+    status: response.status,
+    statusText: response.statusText || "",
+    body: responseText,
+    contentType,
+  };
+}
+
 async function getRuntimeInfo() {
   return {
     bridge: "aya-image-edit",
@@ -414,6 +492,8 @@ async function handleBridgeCall(method, args) {
       return fetchThroughHost(args[0], args[1] || {});
     case "network.fetchMultipart":
       return fetchMultipartThroughHost(args[0], args[1] || {});
+    case "network.fetchResponses":
+      return fetchResponsesThroughHost(args[0], args[1] || {});
     case "shell.openExternal":
       return shell.openExternal(String(args[0] || ""));
     default:
@@ -447,7 +527,6 @@ export function setupBridge(webviewEl) {
       }
 
       try {
-        bridgeHostLog("info", "received bridge call", { id, method });
         const result = await handleBridgeCall(method, args);
         sendToWebview({ id, result });
       } catch (error) {

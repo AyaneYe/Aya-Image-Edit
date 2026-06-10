@@ -1,6 +1,9 @@
 import { dashscopeGenerate, parseDashscopeImages } from "./dashscope.js";
 import { geminiBananaGenerate, parseGeminiBananaImages } from "./geminiBanana.js";
-import { openaiImageEditGenerate, parseOpenAIImages } from "./openaiImage.js";
+import {
+  openaiResponsesGenerate,
+  parseOpenAIResponsesImages,
+} from "./openaiImage.js";
 
 export const PROVIDER_DASHSCOPE = "dashscope";
 export const PROVIDER_GEMINI = "gemini";
@@ -55,6 +58,7 @@ export async function generateImageByProvider({
   inputImageBase64,
   inputImageMime,
   inputImages,
+  generationMode,
   dashscopeParameters,
 }) {
   const provider = normalizeProvider(settings?.provider);
@@ -78,20 +82,18 @@ export async function generateImageByProvider({
   }
 
   if (provider === PROVIDER_OPENAI) {
-    const json = await openaiImageEditGenerate({
+    const json = await openaiResponsesGenerate({
       apiKey: getProviderApiKey(settings, provider),
       baseUrl: settings?.openaiBaseUrl,
       model: getProviderModel(settings, provider),
       prompt,
-      quality: settings?.openaiQuality,
-      inputImageBase64,
-      inputImageMime,
       inputImages,
+      generationMode,
     });
     return {
       provider,
       json,
-      urls: parseOpenAIImages(json),
+      urls: parseOpenAIResponsesImages(json),
     };
   }
 

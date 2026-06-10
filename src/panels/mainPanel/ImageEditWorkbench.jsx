@@ -569,7 +569,6 @@ const OperationCard = ({
   const sizeContext =
     settings.size ||
     settings.geminiImageSize ||
-    settings.openaiQuality ||
     "auto";
   const modelContext =
     settings.provider === "openai"

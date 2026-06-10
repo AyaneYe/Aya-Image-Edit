@@ -1,4 +1,4 @@
-import { hostFetchMultipart } from "../../bridge/hostBridge.js";
+import { hostFetchResponses, hostFetchMultipart } from "../../bridge/hostBridge.js";
 
 export const DEFAULT_OPENAI_BASE_URL = "https://api.openai.com/v1/images/edits";
 export const DEFAULT_OPENAI_IMAGE_MODEL = "gpt-image-2";
@@ -242,6 +242,91 @@ function extractOpenAIError(json) {
   return error?.message || json?.message || json?.detail || "";
 }
 
+// Derive the /v1/responses endpoint from whatever base URL is stored (full path or just origin).
+export function buildOpenAIResponsesUrl(baseUrl) {
+  assertOpenAIBaseUrlAllowed(baseUrl);
+  const { origin } = new URL(normalizeOpenAIBaseUrl(baseUrl));
+  return `${origin}/v1/responses`;
+}
+
+export function parseOpenAIResponsesImages(json) {
+  const urls = [];
+
+  for (const item of Array.isArray(json?.output) ? json.output : []) {
+    if (!item || typeof item !== "object") {
+      continue;
+    }
+
+    // Responses API primary format: { type: "image_generation_call", result: "<base64>" }
+    if (item.type === "image_generation_call" && typeof item.result === "string" && item.result.trim()) {
+      const raw = item.result.trim();
+      urls.push(raw.startsWith("data:") ? raw : `data:image/png;base64,${raw}`);
+      continue;
+    }
+
+    // Fallback: url / b64_json fields directly on the item
+    const directUrl = item.url || item.image_url;
+    if (typeof directUrl === "string" && directUrl.trim()) {
+      urls.push(directUrl.trim());
+      continue;
+    }
+    const b64 = item.b64_json || item.b64Json || item.base64;
+    if (typeof b64 === "string" && b64.trim()) {
+      urls.push(buildDataUrl(item.mime_type || item.mimeType || "image/png", b64.trim()));
+    }
+  }
+
+  // Last resort: fall through to the standard /v1/images format parser
+  return urls.length ? urls : parseOpenAIImages(json);
+}
+
+export async function openaiResponsesGenerate({
+  apiKey,
+  baseUrl,
+  model,
+  prompt,
+  inputImages,
+  generationMode,
+}) {
+  const endpoint = buildOpenAIResponsesUrl(baseUrl);
+  const safeModel =
+    typeof model === "string" && model.trim() ? model.trim() : DEFAULT_OPENAI_IMAGE_MODEL;
+  const safePrompt = typeof prompt === "string" ? prompt.trim() : "";
+
+  const isTextMode = generationMode === "text";
+  const normalizedImages = isTextMode ? [] : normalizeRequestImages({ inputImages });
+
+  const content = [
+    ...normalizedImages.map((img) => ({
+      type: "input_image",
+      image_url: `data:${img.mime};base64,${img.base64}`,
+    })),
+    { type: "input_text", text: safePrompt },
+  ];
+
+  const response = await hostFetchResponses(endpoint, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: safeModel,
+      input: [{ type: "message", role: "user", content }],
+      stream: false,
+    }),
+  });
+
+  const json = parseJsonResponseBody(response.body);
+
+  if (!response.ok) {
+    const message = extractOpenAIError(json) || response.statusText || "OpenAI Responses 请求失败。";
+    throw new Error(message);
+  }
+
+  return json;
+}
+
 export async function openaiImageEditGenerate({
   apiKey,
   baseUrl,
@@ -277,7 +362,7 @@ export async function openaiImageEditGenerate({
         mimeType: image.mime,
         base64: image.base64,
       })),
-    timeoutMs: 120000,
+    timeoutMs: 180000,
   });
 
   const json = parseJsonResponseBody(response.body);
