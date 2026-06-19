@@ -1,13 +1,10 @@
 import React from "react";
-import { ChevronDown, ImageOff, ImagePlus, Play, Plus, Settings2 } from "lucide-react";
+import { ChevronDown, ImageOff, ImagePlus, Play, Plus, Settings2, SlidersHorizontal, Zap } from "lucide-react";
 
 import { ResultWorkspace } from "./ResultWorkspace.jsx";
 
 import "./ImageEditWorkbench.css";
 
-const CARD_CLASS = "card border border-base-300 bg-base-200 shadow-sm";
-const CARD_BODY_CLASS = "card-body gap-4 p-4";
-const TITLE_CLASS = "card-title text-sm font-semibold";
 const FIELD_CLASS = "fieldset";
 const LABEL_CLASS = "fieldset-legend";
 const INPUT_CLASS = "input input-sm w-full";
@@ -35,15 +32,22 @@ const CollapseChevron = ({ collapsed }) => (
   />
 );
 
-const CardPanelHeader = ({ title, collapsed, onToggleCollapse, trailing }) => (
+const ToolPanelHeader = ({ icon: Icon, title, collapsed, onToggleCollapse, trailing }) => (
   <button
     type="button"
-    className="aya-card-header"
+    className={"aya-tool-panel__header" + (collapsed ? " aya-tool-panel__header--collapsed" : "")}
     onClick={onToggleCollapse}
     aria-expanded={!collapsed}
   >
-    <span className={TITLE_CLASS}>{title}</span>
-    <span className="aya-card-header__right">
+    <span className="aya-tool-panel__title-wrap">
+      {Icon ? (
+        <span className="aya-tool-panel__icon">
+          <Icon size={PANEL_ICON_SIZE} strokeWidth={1.8} />
+        </span>
+      ) : null}
+      <span className="aya-tool-panel__title">{title}</span>
+    </span>
+    <span className="aya-tool-panel__right">
       {trailing}
       <CollapseChevron collapsed={collapsed} />
     </span>
@@ -58,61 +62,47 @@ const ShortcutCard = ({
   onRunRemoveBlemishRetouch,
   onRunSetSoftWhiteBrush,
 }) => (
-  <section className={CARD_CLASS}>
-    <div className={CARD_BODY_CLASS}>
-      <CardPanelHeader
-        title="快捷工具"
-        collapsed={collapsed}
-        onToggleCollapse={onToggleCollapse}
-      />
+  <section className="aya-tool-panel">
+    <ToolPanelHeader
+      icon={Zap}
+      title="快捷工具"
+      collapsed={collapsed}
+      onToggleCollapse={onToggleCollapse}
+    />
 
-      {collapsed ? null : (
-        <div className="aya-retouch-shortcuts__actions">
-          <button
-            type="button"
-            className="btn btn-outline btn-sm normal-case aya-shortcut-button"
-            onClick={onRunRemoveBlemishRetouch}
-            disabled={isBusy}
-          >
-            去除瑕疵
-          </button>
-          <button
-            type="button"
-            className="btn btn-outline btn-sm normal-case aya-shortcut-button"
-            onClick={onRunAddNeutralGrayLayer}
-            disabled={isBusy}
-          >
-            添加中性灰层
-          </button>
-          <button
-            type="button"
-            className="btn btn-outline btn-sm normal-case aya-shortcut-button"
-            onClick={onRunSetSoftWhiteBrush}
-            disabled={isBusy}
-          >
-            瑕疵笔刷
-          </button>
+    <div className={"aya-collapse-body" + (collapsed ? " aya-collapse-body--collapsed" : "")}>
+      <div className="aya-collapse-body__inner">
+        <div className="aya-tool-panel__body">
+          <div className="aya-retouch-shortcuts__actions">
+            <button
+              type="button"
+              className="btn btn-outline btn-sm normal-case aya-shortcut-button"
+              onClick={onRunRemoveBlemishRetouch}
+              disabled={isBusy}
+            >
+              去除瑕疵
+            </button>
+            <button
+              type="button"
+              className="btn btn-outline btn-sm normal-case aya-shortcut-button"
+              onClick={onRunAddNeutralGrayLayer}
+              disabled={isBusy}
+            >
+              添加中性灰层
+            </button>
+            <button
+              type="button"
+              className="btn btn-outline btn-sm normal-case aya-shortcut-button"
+              onClick={onRunSetSoftWhiteBrush}
+              disabled={isBusy}
+            >
+              瑕疵笔刷
+            </button>
+          </div>
         </div>
-      )}
+      </div>
     </div>
   </section>
-);
-
-const ToolPanelHeader = ({ icon: Icon, title, collapsed, onToggleCollapse }) => (
-  <button
-    type="button"
-    className="aya-tool-panel__header"
-    onClick={onToggleCollapse}
-    aria-expanded={!collapsed}
-  >
-    <span className="aya-tool-panel__title-wrap">
-      <span className="aya-tool-panel__icon">
-        <Icon size={PANEL_ICON_SIZE} strokeWidth={1.8} />
-      </span>
-      <span className="aya-tool-panel__title">{title}</span>
-    </span>
-    <CollapseChevron collapsed={collapsed} />
-  </button>
 );
 
 const UploadCard = ({
@@ -147,13 +137,6 @@ const UploadCard = ({
         : inputSource === "file"
           ? "文件"
           : "未绑定";
-  const syncLabel = isAutoRefreshActive
-    ? `${sourceLabel}自动`
-    : inputSource === "file"
-      ? "文件快照"
-      : isBoundInputSource
-        ? `${sourceLabel}手动`
-        : "未绑定";
   const autoButtonTitle = isAutoRefreshActive
     ? `自动获取已开启：${sourceLabel}`
     : inputSource === "file"
@@ -164,12 +147,13 @@ const UploadCard = ({
   <section className="aya-tool-panel aya-upload-panel">
     <ToolPanelHeader
       icon={ImagePlus}
-      title="图像上传 (Image Upload)"
+      title="图像上传"
       collapsed={collapsed}
       onToggleCollapse={onToggleCollapse}
     />
 
-    {collapsed ? null : (
+    <div className={"aya-collapse-body" + (collapsed ? " aya-collapse-body--collapsed" : "")}>
+    <div className="aya-collapse-body__inner">
     <div className="aya-upload-panel__body">
       <div
         className="aya-upload-main-slot"
@@ -226,17 +210,6 @@ const UploadCard = ({
           }
         >
           <span className="aya-upload-slot__label">图1</span>
-          {!isTextMode ? (
-            <span
-              className={
-                "aya-upload-sync-badge" +
-                (isAutoRefreshActive ? " aya-upload-sync-badge--active" : "")
-              }
-            >
-              {syncLabel}
-            </span>
-          ) : null}
-
           {isTextMode ? (
             <span className="aya-upload-dropzone__hint">
               <ImageOff size={20} strokeWidth={1.8} />
@@ -363,7 +336,8 @@ const UploadCard = ({
         ) : null}
       </div>
     </div>
-    )}
+    </div>
+    </div>
   </section>
   );
 };
@@ -382,16 +356,17 @@ const ParameterCard = ({
   const autoSendMode = settings.autoSendMode || "off";
 
   return (
-    <section className={CARD_CLASS}>
-      <div className={CARD_BODY_CLASS}>
-        <CardPanelHeader
-          title="编辑参数"
-          collapsed={collapsed}
-          onToggleCollapse={onToggleCollapse}
-        />
+    <section className="aya-tool-panel">
+      <ToolPanelHeader
+        icon={SlidersHorizontal}
+        title="编辑参数"
+        collapsed={collapsed}
+        onToggleCollapse={onToggleCollapse}
+      />
 
-        {collapsed ? null : (
-        <>
+        <div className={"aya-collapse-body" + (collapsed ? " aya-collapse-body--collapsed" : "")}>
+        <div className="aya-collapse-body__inner">
+        <div className="aya-tool-panel__body">
         <label className={FIELD_CLASS}>
           <span className={LABEL_CLASS}>提示词</span>
           <textarea
@@ -541,9 +516,9 @@ const ParameterCard = ({
             </label>
           </div>
         ) : null}
-        </>
-        )}
-      </div>
+        </div>
+        </div>
+        </div>
     </section>
   );
 };
@@ -580,19 +555,20 @@ const OperationCard = ({
     ? "任务需要处理..."
     : isBusy
       ? "任务执行中..."
-      : status || "等待任务指令...";
+      : status || "空闲 ~";
   const contextLine = `信息：${providerLabel} | ${sizeContext || "auto"} | ${modelContext || "auto"} | ${imageCount}张`;
 
   return (
     <section className="aya-tool-panel aya-operation-panel">
       <ToolPanelHeader
         icon={Settings2}
-        title="操作台 (Operation)"
+        title="操作台"
         collapsed={collapsed}
         onToggleCollapse={onToggleCollapse}
       />
 
-      {collapsed ? null : (
+      <div className={"aya-collapse-body" + (collapsed ? " aya-collapse-body--collapsed" : "")}>
+      <div className="aya-collapse-body__inner">
       <div className="aya-operation-panel__body">
         <div
           className={
@@ -625,7 +601,8 @@ const OperationCard = ({
           )}
         </button>
       </div>
-      )}
+      </div>
+      </div>
     </section>
   );
 };

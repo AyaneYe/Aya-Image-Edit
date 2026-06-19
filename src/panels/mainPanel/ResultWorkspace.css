@@ -3,6 +3,7 @@
 }
 
 .aya-result-workspace__preview {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -31,11 +32,46 @@
   color: color-mix(in oklab, var(--color-base-content) 55%, transparent);
 }
 
-.aya-result-workspace__nav,
+.aya-result-workspace__nav {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0 8px;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 200ms, visibility 200ms;
+}
+
+.aya-result-workspace__nav > .btn {
+  pointer-events: auto;
+}
+
 .aya-result-workspace__actions {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px;
+  background: color-mix(in oklab, var(--color-neutral) 70%, transparent);
+  backdrop-filter: blur(8px);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 200ms, visibility 200ms;
+}
+
+.aya-result-workspace__preview:hover .aya-result-workspace__nav,
+.aya-result-workspace__preview:hover .aya-result-workspace__actions {
+  opacity: 1;
+  visibility: visible;
 }
 
 .aya-result-workspace__strip {

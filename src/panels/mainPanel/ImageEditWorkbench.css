@@ -27,38 +27,18 @@
   font: inherit;
   text-align: left;
   cursor: pointer;
+  transition: min-height 0.25s ease, padding 0.25s ease;
+}
+
+.aya-tool-panel__header--collapsed {
+  min-height: 36px;
+  padding: 5px 10px;
 }
 
 .aya-tool-panel__header:hover .aya-tool-panel__title {
   color: var(--color-primary);
 }
 
-/* Shared collapsible header for daisyUI card panels. */
-.aya-card-header {
-  display: flex;
-  width: 100%;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.aya-card-header__right {
-  display: inline-flex;
-  flex: 0 0 auto;
-  align-items: center;
-  gap: 8px;
-}
-
-.aya-card-header:hover .card-title {
-  color: var(--color-primary);
-}
 
 .aya-panel-chevron {
   flex: 0 0 auto;
@@ -68,6 +48,21 @@
 
 .aya-panel-chevron--collapsed {
   transform: rotate(-90deg);
+}
+
+/* Shared collapse animation */
+.aya-collapse-body {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 0.25s ease;
+}
+
+.aya-collapse-body--collapsed {
+  grid-template-rows: 0fr;
+}
+
+.aya-collapse-body__inner {
+  overflow: hidden;
 }
 
 .aya-tool-panel__title-wrap {
@@ -88,6 +83,19 @@
   border-radius: 5px;
   background: var(--color-base-100);
   color: color-mix(in oklab, var(--color-base-content) 78%, transparent);
+  transition: width 0.25s ease, height 0.25s ease;
+}
+
+.aya-tool-panel__header--collapsed .aya-tool-panel__icon {
+  width: 24px;
+  height: 24px;
+}
+
+.aya-tool-panel__right {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
 }
 
 .aya-tool-panel__title {
@@ -100,6 +108,10 @@
   line-height: 1.2;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+.aya-tool-panel__body {
+  padding: 0 8px 8px;
 }
 
 .aya-operation-panel__body {

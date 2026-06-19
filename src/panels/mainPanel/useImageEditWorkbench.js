@@ -239,14 +239,15 @@ export function useImageEditWorkbench() {
     try {
       const payload = source === "layer" ? await layerToImageBase64() : await canvasToImageBase64();
       const image = capturedPayloadToUploadedImage(payload, source);
+      const prev = uploadedInputImageRef.current;
+      if (silent && prev && prev.base64 === image.base64) {
+        return prev;
+      }
       setUploadedInputImage(image);
       uploadedInputImageRef.current = image;
-      setGenerationMode("image");
       if (!silent) {
+        setGenerationMode("image");
         setAutoRefreshInput(true);
-      }
-      lastInputRefreshAtRef.current = Date.now();
-      if (!silent) {
         setStatus(source === "layer" ? "当前图层已载入。" : "当前画布已载入。");
       }
       return image;
@@ -489,7 +490,7 @@ export function useImageEditWorkbench() {
         return;
       }
       onRefreshBoundInputImage();
-    }, 350);
+    }, 3000);
 
     return () => {
       clearInterval(timer);
