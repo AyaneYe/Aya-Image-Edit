@@ -1,7 +1,8 @@
 import React from "react";
-import { ArrowLeft, LayoutDashboard, Settings } from "lucide-react";
+import { ArrowLeft, LayoutDashboard, Settings, Sparkles } from "lucide-react";
 
 import { ImageEditWorkbench } from "./ImageEditWorkbench.jsx";
+import { GlowView } from "./GlowView.jsx";
 import { SettingsView } from "./SettingsView.jsx";
 
 import "./ImageEditShell.css";
@@ -12,6 +13,7 @@ export const ImageEditShell = (props) => {
     isBusy,
     onOpenSettings,
     onOpenWorkbench,
+    onToggleGlow,
     providerLabel,
     activeView,
   } = props;
@@ -55,22 +57,40 @@ export const ImageEditShell = (props) => {
               <ArrowLeft size={14} strokeWidth={2.25} aria-hidden="true" />
             </button>
           ) : (
-            <button
-              type="button"
-              className="btn btn-ghost btn-xs btn-square"
-              onClick={onOpenSettings}
-              title="打开设置"
-              aria-label="打开设置"
-              disabled={isBusy}
-            >
-              <Settings size={14} strokeWidth={2.25} aria-hidden="true" />
-            </button>
+            <>
+              <button
+                type="button"
+                className={"btn btn-ghost btn-xs btn-square" + (activeView === "glow" ? " btn-active" : "")}
+                onClick={onToggleGlow}
+                title={activeView === "glow" ? "返回工作台" : "辉光效果"}
+                aria-label={activeView === "glow" ? "返回工作台" : "辉光效果"}
+                disabled={isBusy}
+              >
+                <Sparkles size={14} strokeWidth={2.25} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                className="btn btn-ghost btn-xs btn-square"
+                onClick={onOpenSettings}
+                title="打开设置"
+                aria-label="打开设置"
+                disabled={isBusy}
+              >
+                <Settings size={14} strokeWidth={2.25} aria-hidden="true" />
+              </button>
+            </>
           )}
         </div>
       </header>
 
       <main className="aya-shell__content">
-        {activeView === "settings" ? <SettingsView {...props} /> : <ImageEditWorkbench {...props} />}
+        {activeView === "settings" ? (
+          <SettingsView {...props} />
+        ) : activeView === "glow" ? (
+          <GlowView {...props} />
+        ) : (
+          <ImageEditWorkbench {...props} />
+        )}
       </main>
     </div>
   );

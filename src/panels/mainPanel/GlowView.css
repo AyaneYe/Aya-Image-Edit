@@ -1,0 +1,201 @@
+/* 辉光效果面板样式 */
+.aya-glow {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.aya-glow__preview-area {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--color-base-300);
+  border-radius: 8px;
+  background: var(--color-base-300);
+  cursor: default;
+}
+
+.aya-glow__preview-area--zoomed {
+  cursor: grab;
+}
+
+.aya-glow__preview-area--dragging {
+  cursor: grabbing;
+}
+
+.aya-glow__canvas {
+  display: block;
+  transform-origin: 0 0;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.aya-glow__processing-indicator {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: color-mix(in oklab, var(--color-base-100) 85%, transparent);
+  pointer-events: none;
+}
+
+.aya-glow__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 8px;
+  color: color-mix(in oklab, var(--color-base-content) 50%, transparent);
+  font-size: 13px;
+}
+
+.aya-glow__controls {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 0 0;
+}
+
+.aya-glow__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.aya-glow__row label {
+  flex: 0 0 auto;
+  min-width: 56px;
+  font-size: 12px;
+  font-weight: 600;
+  color: color-mix(in oklab, var(--color-base-content) 78%, transparent);
+}
+
+.aya-glow__row input[type="range"] {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.aya-glow__row .value-badge {
+  flex: 0 0 auto;
+  min-width: 36px;
+  text-align: right;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-base-content);
+  font-variant-numeric: tabular-nums;
+}
+
+.aya-glow__select {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.aya-glow__toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.aya-glow__color-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.aya-glow__color-input {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--color-base-300);
+  border-radius: 4px;
+  padding: 0;
+  cursor: pointer;
+  background: transparent;
+}
+
+.aya-glow__advanced-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  color: color-mix(in oklab, var(--color-base-content) 60%, transparent);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.aya-glow__advanced-toggle:hover {
+  color: var(--color-primary);
+}
+
+.aya-glow__advanced {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 6px;
+  border-top: 1px solid color-mix(in oklab, var(--color-base-300) 50%, transparent);
+}
+
+/* 画质选择 */
+.aya-glow__quality-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 6px;
+  gap: 4px;
+  border-bottom: 1px solid color-mix(in oklab, var(--color-base-300) 30%, transparent);
+}
+
+.aya-glow__quality-btns {
+  display: flex;
+  gap: 2px;
+}
+
+.aya-glow__quality-btns .btn {
+  padding: 1px 8px;
+  font-size: 11px;
+  min-height: 22px;
+}
+
+.aya-glow__actions {
+  display: flex;
+  gap: 8px;
+  padding-top: 8px;
+}
+
+.aya-glow__actions .btn {
+  flex: 1 1 0;
+}
+
+/* range slider 样式增强 */
+.aya-glow input[type="range"] {
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--color-base-300);
+  border-radius: 2px;
+  outline: none;
+}
+
+.aya-glow input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  cursor: pointer;
+  border: 2px solid var(--color-primary-content);
+}

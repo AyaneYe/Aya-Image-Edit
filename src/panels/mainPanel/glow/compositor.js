@@ -1,0 +1,459 @@
+/**
+ * CPU 合成器模块
+ * Screen/Soft-Add 混合、Core/Halo 分离、色散、暖度、着色
+ *
+ * 接受 Float32 辉光层，避免 Uint8 精度损失
+ */
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function applySaturation(r, g, b, saturation) {
+  const luma = r * 0.2126 + g * 0.7152 + b * 0.0722;
+  return [
+    luma + (r - luma) * saturation,
+    luma + (g - luma) * saturation,
+    luma + (b - luma) * saturation,
+  ];
+}
+
+function softShoulder(value, shoulder) {
+  const safeShoulder = clamp(shoulder, 0.1, 0.95);
+  return value / (1 + value * safeShoulder);
+}
+
+function sampleFloatChannel(layer, x, y) {
+  const sx = Math.min(layer.width - 1, Math.max(0, Math.round(x)));
+  const sy = Math.min(layer.height - 1, Math.max(0, Math.round(y)));
+  const idx = sy * layer.width + sx;
+  return [layer.r[idx], layer.g[idx], layer.b[idx]];
+}
+
+function getChromaticOffset(params) {
+  const c = Math.max(0, Math.min(1, Number(params.composite.chromatic) || 0));
+  const curved = Math.pow(c, 0.96);
+  return Math.max(
+    0,
+    Math.min(
+      30,
+      curved * (4.2 + Math.sqrt(Math.max(1, Number(params.radius) || 1)) * 1.22)
+    )
+  );
+}
+
+function applyGlowColorShift(r, g, b, shift) {
+  const amount = clamp(Number(shift) || 0, -1, 1);
+  if (amount >= 0) {
+    return [
+      r * (1 + amount * 0.34),
+      g * (1 + amount * 0.1),
+      b * (1 - amount * 0.24),
+    ];
+  }
+  const cool = -amount;
+  return [
+    r * (1 - cool * 0.18),
+    g * (1 + cool * 0.04),
+    b * (1 + cool * 0.38),
+  ];
+}
+
+function applyGlowTint(r, g, b, params) {
+  const amount = clamp(Number(params.composite.colorAmount) || 0, 0, 1);
+  if (amount <= 1e-4) return [r, g, b];
+  const tint = Array.isArray(params.composite.colorTint)
+    ? params.composite.colorTint
+    : [1, 0.82, 0.48];
+  const luma = r * 0.2126 + g * 0.7152 + b * 0.0722;
+  const tintR = luma * (tint[0] || 1) * 1.32;
+  const tintG = luma * (tint[1] || 1) * 1.32;
+  const tintB = luma * (tint[2] || 1) * 1.32;
+  return [
+    r * (1 - amount) + tintR * amount,
+    g * (1 - amount) + tintG * amount,
+    b * (1 - amount) + tintB * amount,
+  ];
+}
+
+function splitCoreAndHalo(glow, baseLuma, protect, source, params) {
+  const coreSuppression = clamp(
+    Number(params.composite.coreSuppression) || 0.5,
+    0,
+    1
+  );
+  const haloBoost = Math.max(0, Number(params.composite.haloBoost) || 1);
+  const haloMix = clamp(
+    Number(params.composite.haloMix) || 0.5,
+    0,
+    1
+  );
+  const brightCoreGate = clamp(
+    1 - baseLuma * (0.64 + coreSuppression * 0.28),
+    0.12,
+    1
+  );
+  const protectCoreGate = clamp(
+    1 - protect * (0.46 + coreSuppression * 0.4),
+    0.08,
+    1
+  );
+  const coreGate = brightCoreGate * protectCoreGate;
+  const glowLuma = glow[0] * 0.2126 + glow[1] * 0.7152 + glow[2] * 0.0722;
+  const energyGate = Math.pow(clamp(glowLuma, 0, 1), 0.66);
+  const darkLift = Math.pow(clamp(1 - baseLuma, 0, 1), 0.6);
+  const haloGate = clamp(
+    (1 - protect * 0.46) *
+      (0.36 + source * 0.42 + darkLift * 0.44) *
+      (0.64 + energyGate * 0.88),
+    0.12,
+    1.36
+  );
+  const coreScale = 1 - haloMix * 0.48;
+  const haloScale = 1 + haloMix * 0.66;
+  const coreR = glow[0] * coreGate * coreScale;
+  const coreG = glow[1] * coreGate * coreScale;
+  const coreB = glow[2] * coreGate * coreScale;
+  const haloR = glow[0] * haloGate * haloBoost * haloScale;
+  const haloG = glow[1] * haloGate * haloBoost * haloScale;
+  const haloB = glow[2] * haloGate * haloBoost * haloScale;
+  return [
+    clamp(coreR * (1 - haloMix) + haloR * haloMix, 0, 1),
+    clamp(coreG * (1 - haloMix) + haloG * haloMix, 0, 1),
+    clamp(coreB * (1 - haloMix) + haloB * haloMix, 0, 1),
+  ];
+}
+
+/**
+ * 合成辉光效果
+ * 合成辉光效果
+ * @param {ImageData} baseImage - 原图 (Uint8)
+ * @param {{r,g,b,width,height}} glowLayer - 辉光层 (Float32)
+ * @param {Object} masks - 遮罩数据 { luma, sourceMask, protectMask, darkProtect }
+ * @param {Object} params - 归一化参数
+ * @returns {ImageData}
+ */
+export function composite(baseImage, glowLayer, masks, params) {
+  const { width, height } = baseImage;
+  const baseData = baseImage.data;
+  const out = new Uint8ClampedArray(width * height * 4);
+  const chromaticOffset = getChromaticOffset(params);
+
+  for (
+    let pixel = 0, index = 0;
+    pixel < width * height;
+    pixel += 1, index += 4
+  ) {
+    const x = pixel % width;
+    const y = Math.floor(pixel / width);
+    const baseR = baseData[index] / 255;
+    const baseG = baseData[index + 1] / 255;
+    const baseB = baseData[index + 2] / 255;
+    const baseLuma = masks.luma[pixel];
+    const source = masks.sourceMask[pixel];
+    const protect = masks.protectMask[pixel];
+    const darkProt = masks.darkProtect[pixel];
+
+    const baseSat =
+      Math.max(baseR, baseG, baseB) > 0
+        ? (Math.max(baseR, baseG, baseB) - Math.min(baseR, baseG, baseB)) /
+          Math.max(baseR, baseG, baseB)
+        : 0;
+
+    const highlightProtect =
+      protect *
+      params.composite.highlightProtect *
+      (0.5 + baseLuma * 0.78 + (1 - baseSat) * 0.08);
+    const shadowProtect = darkProt * params.composite.shadowProtect;
+    const sourceAnchor = 0.62 + source * 0.38;
+    const protectGain = clamp(
+      (1 - highlightProtect * 0.78) *
+        (1 - shadowProtect * 0.8) *
+        sourceAnchor,
+      0,
+      1
+    );
+
+    // 色散偏移采样 (从 Float32 层采样，保持精度)
+    const centerIdx = pixel;
+    let layerR, layerG, layerB;
+    if (chromaticOffset > 0) {
+      const [sr, ,] = sampleFloatChannel(glowLayer, x + chromaticOffset, y);
+      const [, , sb] = sampleFloatChannel(glowLayer, x - chromaticOffset, y);
+      layerR = sr;
+      layerG = glowLayer.g[centerIdx];
+      layerB = sb;
+    } else {
+      layerR = glowLayer.r[centerIdx];
+      layerG = glowLayer.g[centerIdx];
+      layerB = glowLayer.b[centerIdx];
+    }
+
+    // 色散边缘增强
+    const centerMax = Math.max(
+      glowLayer.r[centerIdx],
+      glowLayer.g[centerIdx],
+      glowLayer.b[centerIdx]
+    );
+    const chromaStrength = Math.pow(
+      Math.max(0, Math.min(1, params.composite.chromatic || 0)),
+      1.02
+    );
+    const edgeGate = source * (0.68 + (1 - protect) * 0.32);
+    const redEdge =
+      chromaticOffset > 0
+        ? Math.max(0, layerR - centerMax * 0.62) *
+          chromaStrength *
+          2.18 *
+          edgeGate
+        : 0;
+    const blueEdge =
+      chromaticOffset > 0
+        ? Math.max(0, layerB - centerMax * 0.62) *
+          chromaStrength *
+          2.18 *
+          edgeGate
+        : 0;
+
+    // 暖度调整 (乘法)
+    let warmedR = layerR * (1 + params.composite.warmth);
+    let warmedG = layerG * (1 + params.composite.warmth * 0.35);
+    let warmedB = layerB * (1 - params.composite.warmth * 0.28);
+
+    // 色彩偏移 (暖/冷)
+    [warmedR, warmedG, warmedB] = applyGlowColorShift(
+      warmedR,
+      warmedG,
+      warmedB,
+      params.composite.colorShift
+    );
+
+    // 色彩着色
+    [warmedR, warmedG, warmedB] = applyGlowTint(
+      warmedR,
+      warmedG,
+      warmedB,
+      params
+    );
+
+    // 添加色散边缘
+    warmedR += redEdge;
+    warmedB += blueEdge;
+
+    // 饱和度调整
+    const [satR, satG, satB] = applySaturation(
+      warmedR,
+      warmedG,
+      warmedB,
+      params.composite.saturation
+    );
+
+    // Soft Shoulder 色调映射 (在混合之前，应用于 glow * intensity * protectGain)
+    const glowR = clamp(
+      softShoulder(
+        Math.max(0, satR) * params.composite.intensity * protectGain,
+        params.composite.shoulder
+      ),
+      0,
+      1
+    );
+    const glowG = clamp(
+      softShoulder(
+        Math.max(0, satG) * params.composite.intensity * protectGain,
+        params.composite.shoulder
+      ),
+      0,
+      1
+    );
+    const glowB = clamp(
+      softShoulder(
+        Math.max(0, satB) * params.composite.intensity * protectGain,
+        params.composite.shoulder
+      ),
+      0,
+      1
+    );
+
+    // Core/Halo 分离
+    const [shapedR, shapedG, shapedB] = splitCoreAndHalo(
+      [glowR, glowG, glowB],
+      baseLuma,
+      protect,
+      source,
+      params
+    );
+
+    // Screen 混合
+    const screenR = 1 - (1 - baseR) * (1 - shapedR);
+    const screenG = 1 - (1 - baseG) * (1 - shapedG);
+    const screenB = 1 - (1 - baseB) * (1 - shapedB);
+
+    // Soft-Add 混合
+    const softR = clamp(
+      baseR + shapedR * (1 - baseR * (0.58 + protect * 0.34)),
+      0,
+      1
+    );
+    const softG = clamp(
+      baseG + shapedG * (1 - baseG * (0.58 + protect * 0.34)),
+      0,
+      1
+    );
+    const softB = clamp(
+      baseB + shapedB * (1 - baseB * (0.58 + protect * 0.34)),
+      0,
+      1
+    );
+
+    // 混合 Screen + Soft-Add
+    const mix = params.composite.softAddMix;
+    const maxGlow = Math.max(shapedR, shapedG, shapedB);
+    const colorProtect = clamp(
+      1 -
+        maxGlow *
+          params.composite.colorProtect *
+          (0.88 + baseSat * 0.22),
+      0.86,
+      1
+    );
+    const resultR =
+      (screenR * (1 - mix) + softR * mix) * colorProtect +
+      baseR * (1 - colorProtect);
+    const resultG =
+      (screenG * (1 - mix) + softG * mix) * colorProtect +
+      baseG * (1 - colorProtect);
+    const resultB =
+      (screenB * (1 - mix) + softB * mix) * colorProtect +
+      baseB * (1 - colorProtect);
+
+    out[index] = Math.round(clamp(resultR, 0, 1) * 255);
+    out[index + 1] = Math.round(clamp(resultG, 0, 1) * 255);
+    out[index + 2] = Math.round(clamp(resultB, 0, 1) * 255);
+    out[index + 3] = baseData[index + 3];
+  }
+
+  return new ImageData(out, width, height);
+}
+
+/**
+ * 渲染独立辉光层 (不含 base 混合)
+ * 渲染独立辉光层
+ * @param {{r,g,b,width,height}} glowLayer - Float32 辉光层
+ * @param {Object} masks - 遮罩数据
+ * @param {Object} params - 参数
+ * @returns {ImageData} RGBA ImageData, alpha = max(R,G,B)
+ */
+export function renderGlowLayer(glowLayer, masks, params) {
+  const { width, height } = glowLayer;
+  const out = new ImageData(width, height);
+  const data = out.data;
+  const chromaticOffset = getChromaticOffset(params);
+
+  for (
+    let pixel = 0, index = 0;
+    pixel < width * height;
+    pixel += 1, index += 4
+  ) {
+    const x = pixel % width;
+    const y = Math.floor(pixel / width);
+    const source = masks.sourceMask[pixel];
+    const protect = masks.protectMask[pixel];
+    const darkProt = masks.darkProtect[pixel];
+
+    // 注意: renderGlowLayer 的 highlightProtect 公式略有不同 (不含 baseLuma/baseSat 因子)
+    const highlightProtect = protect * params.composite.highlightProtect * 0.86;
+    const shadowProtect = darkProt * params.composite.shadowProtect;
+    const sourceAnchor = 0.62 + source * 0.38;
+    const protectGain = clamp(
+      (1 - highlightProtect * 0.78) * (1 - shadowProtect * 0.8) * sourceAnchor,
+      0,
+      1
+    );
+
+    // 色散偏移采样
+    let layerR, layerG, layerB;
+    if (chromaticOffset > 0) {
+      const [sr] = sampleFloatChannel(glowLayer, x + chromaticOffset, y);
+      const [, , sb] = sampleFloatChannel(glowLayer, x - chromaticOffset, y);
+      layerR = sr;
+      layerG = glowLayer.g[pixel];
+      layerB = sb;
+    } else {
+      layerR = glowLayer.r[pixel];
+      layerG = glowLayer.g[pixel];
+      layerB = glowLayer.b[pixel];
+    }
+
+    // 色散边缘增强
+    const centerMax = Math.max(
+      glowLayer.r[pixel],
+      glowLayer.g[pixel],
+      glowLayer.b[pixel]
+    );
+    const chromaStrength = Math.pow(
+      Math.max(0, Math.min(1, params.composite.chromatic || 0)),
+      1.02
+    );
+    const edgeGate = source * (0.68 + (1 - protect) * 0.32);
+    const redEdge =
+      chromaticOffset > 0
+        ? Math.max(0, layerR - centerMax * 0.62) * chromaStrength * 2.18 * edgeGate
+        : 0;
+    const blueEdge =
+      chromaticOffset > 0
+        ? Math.max(0, layerB - centerMax * 0.62) * chromaStrength * 2.18 * edgeGate
+        : 0;
+
+    // 暖度
+    let warmedR = layerR * (1 + params.composite.warmth);
+    let warmedG = layerG * (1 + params.composite.warmth * 0.35);
+    let warmedB = layerB * (1 - params.composite.warmth * 0.28);
+
+    // 色彩偏移/着色
+    [warmedR, warmedG, warmedB] = applyGlowColorShift(
+      warmedR, warmedG, warmedB, params.composite.colorShift
+    );
+    [warmedR, warmedG, warmedB] = applyGlowTint(
+      warmedR, warmedG, warmedB, params
+    );
+    warmedR += redEdge;
+    warmedB += blueEdge;
+
+    // 饱和度
+    const [satR, satG, satB] = applySaturation(
+      warmedR, warmedG, warmedB, params.composite.saturation
+    );
+
+    // Soft Shoulder + 强度
+    const glowR = clamp(
+      softShoulder(Math.max(0, satR) * params.composite.intensity * protectGain, params.composite.shoulder),
+      0, 1
+    );
+    const glowG = clamp(
+      softShoulder(Math.max(0, satG) * params.composite.intensity * protectGain, params.composite.shoulder),
+      0, 1
+    );
+    const glowB = clamp(
+      softShoulder(Math.max(0, satB) * params.composite.intensity * protectGain, params.composite.shoulder),
+      0, 1
+    );
+
+    // Core/Halo 分离
+    const [shapedR, shapedG, shapedB] = splitCoreAndHalo(
+      [glowR, glowG, glowB],
+      masks.luma[pixel],
+      protect,
+      source,
+      params
+    );
+
+    // 输出: alpha = max(shapedR, shapedG, shapedB)
+    const alpha = clamp(Math.max(shapedR, shapedG, shapedB), 0, 1);
+    data[index] = Math.round(clamp(shapedR, 0, 1) * 255);
+    data[index + 1] = Math.round(clamp(shapedG, 0, 1) * 255);
+    data[index + 2] = Math.round(clamp(shapedB, 0, 1) * 255);
+    data[index + 3] = Math.round(alpha * 255);
+  }
+
+  return out;
+}

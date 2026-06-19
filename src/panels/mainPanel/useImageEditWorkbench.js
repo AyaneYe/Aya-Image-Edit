@@ -267,6 +267,20 @@ export function useImageEditWorkbench() {
 
   const onCaptureCanvasInputImage = () => captureInputFromHost("canvas");
   const onCaptureLayerInputImage = () => captureInputFromHost("layer");
+  // 辉光面板专用：直接捕获图层数据，不设置 uploadedInputImage，不触发任何副作用
+  const onCaptureLayerForGlow = async () => {
+    try {
+      const payload = await layerToImageBase64();
+      return {
+        dataUrl: `data:${payload.mime};base64,${payload.base64}`,
+        bounds: payload.bounds || null,
+        docId: payload.docId || null,
+      };
+    } catch (e) {
+      console.error("Glow capture error:", e);
+      return null;
+    }
+  };
   const onRefreshBoundInputImage = async (options = {}) => {
     if (!autoRefreshInput) {
       return;
@@ -673,6 +687,7 @@ export function useImageEditWorkbench() {
     autoRefreshInput,
     onCaptureCanvasInputImage,
     onCaptureLayerInputImage,
+    onCaptureLayerForGlow,
     onClearPreviews,
     onDeleteSelectedPreview,
     onGenerate,
@@ -687,6 +702,22 @@ export function useImageEditWorkbench() {
     onOpenWorkbench: () => {
       if (!isBusy) {
         setActiveView("workbench");
+      }
+    },
+    onToggleGlow: () => {
+      if (!isBusy) {
+        setActiveView((prev) => (prev === "glow" ? "workbench" : "glow"));
+      }
+    },
+    onApplyGlow: async (dataUrl, bounds, docId) => {
+      // 将辉光结果应用到 Photoshop
+      const targetBounds = bounds || uploadedInputImage?.bounds;
+      const targetDocId = docId || uploadedInputImage?.docId;
+      if (!targetBounds) return;
+      try {
+        await placeImageUrlAtBounds(dataUrl, targetBounds, targetDocId);
+      } catch (e) {
+        console.error("Apply glow error:", e);
       }
     },
     onSaveSelectedPreview,
