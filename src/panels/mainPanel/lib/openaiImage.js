@@ -1,4 +1,4 @@
-import { hostFetchResponses, hostFetchMultipart } from "../../bridge/hostBridge.js";
+import { hostFetchResponses, hostFetchMultipart } from "../../../bridge/hostBridge.js";
 
 export const DEFAULT_OPENAI_BASE_URL = "https://api.openai.com/v1/images/edits";
 export const DEFAULT_OPENAI_IMAGE_MODEL = "gpt-image-2";

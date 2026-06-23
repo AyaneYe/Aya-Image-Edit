@@ -1,4 +1,4 @@
-import { hostFetchJson } from "../../bridge/hostBridge.js";
+import { hostFetchJson } from "../../../bridge/hostBridge.js";
 
 function normalizeInlineData(part) {
   return part?.inlineData || part?.inline_data || null;

@@ -1,7 +1,7 @@
-import { readSettingsFromHost, writeSettingsToHost } from "../../bridge/hostBridge.js";
-import { defaultSettings } from "./sharedSettings.js";
+import { readSettingsFromHost, writeSettingsToHost } from "../../../bridge/hostBridge.js";
+import { defaultSettings } from "../constants/sharedSettings.js";
 
-export { defaultSettings } from "./sharedSettings.js";
+export { defaultSettings } from "../constants/sharedSettings.js";
 
 export async function readSettingsFromDisk() {
   try {

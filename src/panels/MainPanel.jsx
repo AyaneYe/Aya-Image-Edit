@@ -1,1 +1,1 @@
-export { MainPanel } from "./mainPanel/MainPanelView.jsx";
+export { MainPanel } from "./mainPanel";
