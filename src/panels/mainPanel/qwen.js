@@ -1,4 +1,4 @@
-import { hostFetchJson } from "../../../bridge/hostBridge.js";
+import { hostFetchJson } from "../../bridge/hostBridge.js";
 
 export function parseQwenImages(json) {
   const urls = [];

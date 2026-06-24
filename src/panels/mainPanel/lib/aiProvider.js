@@ -1,4 +1,4 @@
-import { qwenGenerate, parseQwenImages } from "./qwen.js";
+import { qwenGenerate, parseQwenImages } from "../qwen.js";
 import { geminiBananaGenerate, parseGeminiBananaImages } from "./geminiBanana.js";
 import {
   openaiResponsesGenerate,
