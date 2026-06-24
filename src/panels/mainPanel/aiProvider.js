@@ -1,11 +1,11 @@
-import { dashscopeGenerate, parseDashscopeImages } from "./dashscope.js";
+import { qwenGenerate, parseQwenImages } from "./qwen.js";
 import { geminiBananaGenerate, parseGeminiBananaImages } from "./geminiBanana.js";
 import {
   openaiResponsesGenerate,
   parseOpenAIResponsesImages,
 } from "./openaiImage.js";
 
-export const PROVIDER_DASHSCOPE = "dashscope";
+export const PROVIDER_QWEN = "qwen";
 export const PROVIDER_GEMINI = "gemini";
 export const PROVIDER_OPENAI = "openai";
 
@@ -16,7 +16,7 @@ export function normalizeProvider(value) {
   if (value === PROVIDER_OPENAI) {
     return PROVIDER_OPENAI;
   }
-  return PROVIDER_DASHSCOPE;
+  return PROVIDER_QWEN;
 }
 
 export function getProviderLabel(provider) {
@@ -27,7 +27,7 @@ export function getProviderLabel(provider) {
   if (safeProvider === PROVIDER_OPENAI) {
     return "OpenAI";
   }
-  return "DashScope";
+  return "Qwen";
 }
 
 export function getProviderApiKey(settings, provider) {
@@ -59,7 +59,7 @@ export async function generateImageByProvider({
   inputImageMime,
   inputImages,
   generationMode,
-  dashscopeParameters,
+  qwenParameters,
 }) {
   const provider = normalizeProvider(settings?.provider);
 
@@ -97,19 +97,19 @@ export async function generateImageByProvider({
     };
   }
 
-  const json = await dashscopeGenerate({
+  const json = await qwenGenerate({
     apiKey: getProviderApiKey(settings, provider),
     model: getProviderModel(settings, provider),
     prompt,
     inputImageBase64,
     inputImageMime,
     inputImages,
-    parameters: dashscopeParameters,
+    parameters: qwenParameters,
   });
 
   return {
     provider,
     json,
-    urls: parseDashscopeImages(json),
+    urls: parseQwenImages(json),
   };
 }

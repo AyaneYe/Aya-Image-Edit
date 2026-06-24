@@ -1,7 +1,7 @@
 import React from "react";
 
 import {
-  PROVIDER_DASHSCOPE,
+  PROVIDER_QWEN,
   PROVIDER_GEMINI,
   PROVIDER_OPENAI,
 } from "./aiProvider.js";
@@ -24,7 +24,7 @@ export const SettingsView = ({ activeProvider, isBusy, setSettings, settings }) 
     ? "Gemini 密钥"
     : isOpenAIProvider
       ? "OpenAI 密钥"
-      : "DashScope 密钥";
+      : "Qwen 密钥";
   const apiKeyValue = isGeminiProvider
     ? settings.geminiApiKey
     : isOpenAIProvider
@@ -50,7 +50,7 @@ export const SettingsView = ({ activeProvider, isBusy, setSettings, settings }) 
               }
               disabled={isBusy}
             >
-              <option value={PROVIDER_DASHSCOPE}>DashScope</option>
+              <option value={PROVIDER_QWEN}>Qwen</option>
               <option value={PROVIDER_GEMINI}>Gemini</option>
               <option value={PROVIDER_OPENAI}>OpenAI</option>
             </select>

@@ -1,6 +1,6 @@
 import { hostFetchJson } from "../../bridge/hostBridge.js";
 
-export function parseDashscopeImages(json) {
+export function parseQwenImages(json) {
   const urls = [];
   const content =
     json?.output?.choices?.[0]?.message?.content ||
@@ -39,7 +39,7 @@ function normalizeInputImages({ inputImageBase64, inputImageMime, inputImages })
   ];
 }
 
-export async function dashscopeGenerate({
+export async function qwenGenerate({
   apiKey,
   model,
   prompt,
@@ -83,7 +83,7 @@ export async function dashscopeGenerate({
   );
 
   if (!response.ok) {
-    const message = response.json?.message || response.statusText || "DashScope 请求失败。";
+    const message = response.json?.message || response.statusText || "Qwen 请求失败。";
     throw new Error(message);
   }
 

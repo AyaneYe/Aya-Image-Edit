@@ -5,7 +5,7 @@ import {
   getProviderApiKey,
   getProviderLabel,
   normalizeProvider,
-  PROVIDER_DASHSCOPE,
+  PROVIDER_QWEN,
   PROVIDER_GEMINI,
   PROVIDER_OPENAI,
 } from "./aiProvider.js";
@@ -116,7 +116,7 @@ export function useImageEditWorkbench() {
   const activeProvider = normalizeProvider(settings.provider);
   const providerLabel = getProviderLabel(activeProvider);
   const isGeminiProvider = activeProvider === PROVIDER_GEMINI;
-  const isDashscopeProvider = activeProvider === PROVIDER_DASHSCOPE;
+  const isQwenProvider = activeProvider === PROVIDER_QWEN;
   const isOpenAIProvider = activeProvider === PROVIDER_OPENAI;
 
   const selectedPreview = useMemo(
@@ -414,7 +414,7 @@ export function useImageEditWorkbench() {
           : "";
       const cleanedSize = typeof settings.size === "string" ? settings.size.trim() : "";
 
-      const dashscopeParameters = isDashscopeProvider
+      const qwenParameters = isQwenProvider
         ? {
             n: 1,
             negative_prompt: cleanedNegativePrompt.length ? cleanedNegativePrompt : " ",
@@ -432,7 +432,7 @@ export function useImageEditWorkbench() {
         inputImageMime: mainInputImage?.mime || "image/png",
         inputImages,
         generationMode,
-        dashscopeParameters,
+        qwenParameters,
       });
 
       if (!generated.urls.length) {
@@ -680,7 +680,7 @@ export function useImageEditWorkbench() {
     canGoPrevious: selectedPreviewIndex > 0,
     error,
     isBusy,
-    isDashscopeProvider,
+    isQwenProvider,
     isGeminiProvider,
     isOpenAIProvider,
     generationMode,

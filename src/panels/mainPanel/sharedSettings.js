@@ -1,5 +1,5 @@
 export const defaultSettings = {
-  provider: "dashscope",
+  provider: "qwen",
   apiKey: "",
   model: "qwen-image-edit-max",
   geminiApiKey: "",

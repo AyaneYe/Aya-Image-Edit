@@ -345,7 +345,7 @@ const UploadCard = ({
 const ParameterCard = ({
   collapsed,
   isBusy,
-  isDashscopeProvider,
+  isQwenProvider,
   isGeminiProvider,
   onToggleCollapse,
   prompt,
@@ -400,7 +400,7 @@ const ParameterCard = ({
           <span className="text-xs text-base-content/50">{getAutoSendLabel(autoSendMode)}</span>
         </label>
 
-        {isDashscopeProvider ? (
+        {isQwenProvider ? (
           <>
             <div className="aya-field-grid">
               <label className={FIELD_CLASS}>
@@ -612,7 +612,7 @@ export const ImageEditWorkbench = (props) => {
     error,
     autoRefreshInput,
     isBusy,
-    isDashscopeProvider,
+    isQwenProvider,
     isGeminiProvider,
     generationMode,
     onCaptureCanvasInputImage,
@@ -699,7 +699,7 @@ export const ImageEditWorkbench = (props) => {
         <ParameterCard
           collapsed={Boolean(collapsed.parameter)}
           isBusy={isBusy}
-          isDashscopeProvider={isDashscopeProvider}
+          isQwenProvider={isQwenProvider}
           isGeminiProvider={isGeminiProvider}
           onToggleCollapse={() => toggleCollapse("parameter")}
           prompt={prompt}
