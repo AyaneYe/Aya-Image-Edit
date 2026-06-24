@@ -3,7 +3,7 @@ import {
   captureLayerFromHost,
   captureSelectionFromHost,
   getSelectionBoundsFromHost,
-} from "../../bridge/hostBridge.js";
+} from "../../../bridge/hostBridge.js";
 
 export async function getSelectionBounds() {
   return getSelectionBoundsFromHost();
