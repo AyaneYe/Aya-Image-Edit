@@ -1,4 +1,4 @@
-import { defaultSettings } from "../../src/panels/mainPanel/sharedSettings.js";
+import { defaultSettings } from "../../src/panels/mainPanel/constants/sharedSettings.js";
 
 const SETTINGS_FILE_NAME = "settings.json";
 const SOFT_WHITE_BRUSH_PRESET_FILE_NAME = "Soft_Brush.tpl";

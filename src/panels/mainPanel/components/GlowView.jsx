@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronDown, Sparkles } from "lucide-react";
-import { STYLE_KEYS, STYLE_PRESETS } from "./glow/presets.js";
-import { GlowEngine } from "./glow/engine.js";
+import { STYLE_KEYS, STYLE_PRESETS } from "../glow/presets.js";
+import { GlowEngine } from "../glow/engine.js";
 
 import "./GlowView.css";
 

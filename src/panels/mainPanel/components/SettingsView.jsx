@@ -4,8 +4,8 @@ import {
   PROVIDER_QWEN,
   PROVIDER_GEMINI,
   PROVIDER_OPENAI,
-} from "./aiProvider.js";
-import { GEMINI_MODEL_OPTIONS } from "./sharedSettings.js";
+} from "../lib/aiProvider.js";
+import { GEMINI_MODEL_OPTIONS } from "../constants/sharedSettings.js";
 
 import "./SettingsView.css";
 

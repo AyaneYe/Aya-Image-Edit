@@ -1,7 +1,7 @@
 import React from "react";
 
-import { ImageEditShell } from "./ImageEditShell.jsx";
-import { useImageEditWorkbench } from "./useImageEditWorkbench.js";
+import { ImageEditShell } from "./components/ImageEditShell.jsx";
+import { useImageEditWorkbench } from "./hooks/useImageEditWorkbench.js";
 
 class PanelErrorBoundary extends React.Component {
   constructor(props) {

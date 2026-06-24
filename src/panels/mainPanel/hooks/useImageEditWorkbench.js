@@ -8,22 +8,22 @@ import {
   PROVIDER_QWEN,
   PROVIDER_GEMINI,
   PROVIDER_OPENAI,
-} from "./aiProvider.js";
-import { placeImageUrlAtBounds } from "./placeImage.js";
+} from "../lib/aiProvider.js";
+import { placeImageUrlAtBounds } from "../lib/placeImage.js";
 import {
   canvasToImageBase64,
   getSelectionBounds,
   layerToImageBase64,
-} from "./psSelection.js";
-import { defaultSettings } from "./sharedSettings.js";
-import { readSettingsFromDisk, writeSettingsToDisk } from "./settingsStorage.js";
+} from "../lib/psSelection.js";
+import { defaultSettings } from "../constants/sharedSettings.js";
+import { readSettingsFromDisk, writeSettingsToDisk } from "../lib/settingsStorage.js";
 import {
   runAddNeutralGrayLayerInHost,
   runRemoveBlemishRetouchInHost,
   runSetSoftWhiteBrushInHost,
   saveGeneratedImageToHost,
   subscribePhotoshopDocumentChange,
-} from "../../bridge/hostBridge.js";
+} from "../../../bridge/hostBridge.js";
 
 function createPreviewItem(url, boundsAtStart, docId, batchKey, index) {
   return {
